@@ -1,0 +1,3293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>作业小龙 v3.2 🐲</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #6C5CE7;
+      --secondary: #A29BFE;
+      --success: #00B894;
+      --warning: #FDCB6E;
+      --danger: #E17055;
+      --math-gold: #FFD700;
+      --math-orange: #FF9500;
+      --coin-gold: #FFD700;
+      --coin-dark: #F0A500;
+      --stage-color: {{ appearance.primary_color }};
+      --stage-gradient: {{ appearance.bg_gradient }};
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(160deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      min-height: 100vh;
+      padding: 12px 10px 80px;
+      overflow-x: hidden;
+    }
+    .page-wrap { max-width: 460px; margin: 0 auto; }
+
+    /* ===== 顶部宠物卡片 ===== */
+    .pet-card {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 28px;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      margin-bottom: 12px;
+    }
+    .pet-header { padding: 20px 16px 12px; text-align: center; position: relative; }
+
+    /* 倒计时 */
+    .countdown-bar {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      background: rgba(255,255,255,0.2); border-radius: 20px;
+      padding: 5px 14px; margin-bottom: 12px;
+      font-size: 12px; color: #fff; font-weight: 600;
+    }
+    .countdown-bar.expired { background: rgba(0,0,0,0.25); opacity: 0.7; }
+    .countdown-bar .time-val { font-size: 15px; color: #FFD700; font-weight: 700; }
+
+    /* 宠物主展示 - 新布局：环形在左，龙在中，互动在右上 */
+    .pet-main { display: flex; align-items: center; gap: 14px; }
+
+    /* 环形进度 */
+    .ring-wrap { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: rgba(255,255,255,0.2); stroke-width: 7; }
+    .ring-fg { fill: none; stroke: #55EFC4; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(.4,2,.6,1); }
+    .ring-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; color: #fff; }
+    .ring-num { font-size: 18px; font-weight: 800; line-height: 1; }
+    .ring-sub { font-size: 9px; opacity: 0.8; }
+
+    /* 宠物中央区域 */
+    .pet-center { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+    .pet-avatar {
+      position: relative;
+      animation: float 3s ease-in-out infinite;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .pet-avatar:active { transform: scale(0.92); }
+
+    /* ===== CSS/SVG 龙 ===== */
+    .dragon-svg-wrap {
+      width: {{ svg_info.size }}px; height: {{ svg_info.size }}px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+    }
+
+    /* Stage 0: 龙蛋 */
+    .dragon-egg { animation: egg-wobble 4s ease-in-out infinite; }
+    .egg-body { fill: {{ svg_info.color }}; stroke: #9C27B0; stroke-width: 2; }
+    .egg-spots { fill: #E1BEE7; opacity: 0.6; }
+    .egg-crack { stroke: #9C27B0; stroke-width: 1.5; fill: none; opacity: 0.7; }
+    .egg-glow { fill: #E1BEE7; opacity: 0.3; animation: pulse-glow 2s ease-in-out infinite; }
+    @keyframes egg-wobble {
+      0%,100% { transform: rotate(-3deg); }
+      50% { transform: rotate(3deg); }
+    }
+
+    /* Stage 1: 幼龙 */
+    .dragon-hatchling { animation: hatchling-bounce 2.5s ease-in-out infinite; }
+    .hatch-body { fill: {{ svg_info.color }}; }
+    .hatch-belly { fill: #C8E6C9; }
+    .hatch-eye { fill: #2D3436; }
+    .hatch-eye-shine { fill: #fff; }
+    .hatch-wing { fill: #81C784; opacity: 0.7; }
+    .hatch-cheek { fill: #FF8A80; opacity: 0.5; }
+    .hatch-horn { fill: #66BB6A; }
+    @keyframes hatchling-bounce {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* Stage 2: 少年龙 */
+    .dragon-young { animation: young-sway 3s ease-in-out infinite; }
+    .young-body { fill: {{ svg_info.color }}; }
+    .young-belly { fill: #B3E5FC; }
+    .young-eye { fill: #2D3436; }
+    .young-wing { fill: #29B6F6; opacity: 0.8; }
+    .young-horn { fill: #0288D1; }
+    .young-tail { fill: {{ svg_info.color }}; }
+    @keyframes young-sway {
+      0%,100% { transform: translateX(0) rotate(0); }
+      25% { transform: translateX(3px) rotate(2deg); }
+      75% { transform: translateX(-3px) rotate(-2deg); }
+    }
+
+    /* Stage 3: 青年龙 */
+    .dragon-adult { animation: adult-breathe 3.5s ease-in-out infinite; }
+    .adult-body { fill: {{ svg_info.color }}; }
+    .adult-belly { fill: #FFCCBC; }
+    .adult-eye { fill: #2D3436; }
+    .adult-wing { fill: #FF7043; opacity: 0.85; }
+    .adult-horn { fill: #E64A19; }
+    .adult-scale { fill: #FFAB91; opacity: 0.4; }
+    @keyframes adult-breathe {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    /* Stage 4: 神龙 */
+    .dragon-divine { animation: divine-float 4s ease-in-out infinite; }
+    .divine-body { fill: {{ svg_info.color }}; }
+    .divine-glow { fill: #FFF9C4; opacity: 0.3; animation: pulse-glow 2s ease-in-out infinite; }
+    .divine-wing { fill: #FFD54F; opacity: 0.8; }
+    .divine-horn { fill: #FF8F00; }
+    .divine-aura { fill: none; stroke: #FFD740; stroke-width: 2; opacity: 0.4; animation: aura-rotate 8s linear infinite; }
+    @keyframes divine-float {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.02); }
+    }
+    @keyframes pulse-glow {
+      0%,100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.1); }
+    }
+    @keyframes aura-rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* 互动按钮行 */
+    .interact-btns {
+      display: flex; gap: 6px; justify-content: center;
+      margin-top: 8px;
+    }
+    .interact-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .interact-btn:active { transform: scale(0.85); background: rgba(255,255,255,0.4); }
+    .interact-btn.disabled { opacity: 0.4; pointer-events: none; }
+
+    /* 语音气泡 */
+    .speech-bubble {
+      position: absolute;
+      top: -36px; left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #2D3436;
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      animation: bubble-pop 0.3s cubic-bezier(.4,2,.6,1), bubble-fade 0.5s 2.2s forwards;
+      z-index: 20;
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -6px; left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 8px solid #fff;
+    }
+    @keyframes bubble-pop {
+      0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+      100% { transform: translateX(-50%) scale(1); opacity: 1; }
+    }
+    @keyframes bubble-fade {
+      to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    }
+
+    /* 互动粒子 */
+    .interact-particle {
+      position: absolute;
+      pointer-events: none;
+      font-size: 16px;
+      animation: particle-rise 1.2s ease-out forwards;
+    }
+    @keyframes particle-rise {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-50px) scale(0.5); }
+    }
+
+    .pet-name { font-size: 16px; font-weight: 800; color: #fff; margin-top: 6px; }
+    .stage-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; margin-top: 3px;
+      background: rgba(255,255,255,0.25); color: #fff;
+    }
+    .evolution-progress {
+      width: 100%; max-width: 180px; height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px; overflow: hidden;
+      margin-top: 6px;
+    }
+    .evolution-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, {{ appearance.primary_color }}, #FFD740);
+      transition: width 0.8s ease;
+    }
+    .evolution-fill.near-max { animation: glow-pulse 1s ease-in-out infinite; }
+    @keyframes glow-pulse {
+      0%,100% { box-shadow: 0 0 4px {{ appearance.primary_color }}; }
+      50% { box-shadow: 0 0 12px {{ appearance.primary_color }}; }
+    }
+
+    /* 家长鼓励气泡 */
+    .encourage-bubble {
+      position: absolute; top: -8px; right: -8px;
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, #FD79A8, #e84393);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; box-shadow: 0 3px 12px rgba(253,121,168,0.5);
+      cursor: pointer; animation: pulse-heart 1.5s ease-in-out infinite; z-index: 10;
+    }
+    @keyframes pulse-heart { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
+    /* 属性条 - 新增龙币和亲密度 */
+    .attr-bar { display: flex; gap: 6px; padding: 10px 12px; background: rgba(255,255,255,0.12); }
+    .attr-item { flex: 1; }
+    .attr-label { font-size: 9px; color: rgba(255,255,255,0.75); margin-bottom: 3px; }
+    .attr-val { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+    .attr-track { height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+    .attr-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+    .fill-exp { background: linear-gradient(90deg, #A29BFE, #6C5CE7); }
+    .fill-streak { background: linear-gradient(90deg, #FD79A8, #e84393); }
+    .fill-hunger { background: linear-gradient(90deg, #55EFC4, #00B894); }
+    .fill-mood { background: linear-gradient(90deg, #FDCB6E, #FF9500); }
+    .fill-bond { background: linear-gradient(90deg, #FF8A80, #FF5252); }
+    .attr-coin {
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      font-size: 14px; font-weight: 800; color: #FFD700;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    /* ===== 主内容卡片 ===== */
+    .main-card {
+      background: #fff; border-radius: 24px; overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15); margin-bottom: 12px;
+    }
+    .tab-nav {
+      display: flex; background: #f1f3f8;
+      margin: 12px 12px 0; border-radius: 14px; padding: 3px;
+    }
+    .tab-item {
+      flex: 1; text-align: center; padding: 8px 0; border-radius: 11px;
+      font-size: 13px; font-weight: 600; cursor: pointer; color: #888; transition: all 0.25s;
+    }
+    .tab-item.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(108,92,231,0.4); }
+
+    /* 操作按钮 */
+    .action-area { padding: 14px 12px 6px; }
+    .btn-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .btn-complete {
+      flex: 1; padding: 14px 8px; border: none;
+      background: linear-gradient(135deg, #00B894, #55EFC4);
+      color: #fff; font-size: 15px; font-weight: 800;
+      border-radius: 14px; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,184,148,0.4); transition: all 0.2s;
+    }
+    .btn-complete:active { transform: scale(0.97); }
+    .btn-feed {
+      padding: 14px 16px; border: none;
+      background: linear-gradient(135deg, #FDCB6E, #FFEAA7);
+      color: #7d5b00; font-size: 15px; font-weight: 700;
+      border-radius: 14px; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(253,203,110,0.4); transition: all 0.2s;
+    }
+    .btn-feed:active { transform: scale(0.97); }
+    .btn-focus {
+      width: 100%; padding: 12px; border: none;
+      background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+      color: #fff; font-size: 14px; font-weight: 700;
+      border-radius: 14px; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(108,92,231,0.35); transition: all 0.2s;
+      margin-bottom: 8px;
+    }
+    .btn-focus:active { transform: scale(0.97); }
+    .focus-info { font-size: 12px; color: #888; text-align: center; margin-bottom: 10px; }
+
+    /* 任务列表 */
+    .task-section { padding: 4px 12px 12px; }
+    .section-title {
+      font-size: 12px; font-weight: 700; color: #aaa;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 8px; margin-top: 6px;
+    }
+    .task-row {
+      display: flex; align-items: center;
+      background: #f8f9fb; border-radius: 12px;
+      padding: 10px 10px; margin-bottom: 6px;
+      transition: all 0.25s; border: 2px solid transparent;
+    }
+    .task-row.done { background: #f0fdf8; border-color: #55EFC4; }
+    .task-row.is-math:not(.done) { background: #fffbea; border-color: #FFD70055; }
+    .task-row.is-math.done { background: #fffbe8; border-color: #FFD700; }
+    .task-row.expired { opacity: 0.5; }
+    .task-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-right: 10px; flex-shrink: 0;
+    }
+    .t-yuwen { background: #FFE2E2; }
+    .t-shuxue { background: linear-gradient(135deg, #FFF3CD, #FFD700); }
+    .t-yingyu { background: #E3F9EE; }
+    .t-tiyu { background: #FFF0E5; }
+    .t-qita { background: #EDE9FF; }
+    .t-custom { background: linear-gradient(135deg, #E8EAF6, #C5CAE9); }
+    .task-body { flex: 1; min-width: 0; }
+    .task-name { font-size: 14px; font-weight: 700; color: #2D3436; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-meta { font-size: 11px; color: #aaa; margin-top: 2px; }
+    .task-meta.done-txt { color: var(--success); font-weight: 600; }
+    .math-badge {
+      background: linear-gradient(135deg, #FFD700, #FF9500);
+      color: #fff; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 8px; margin-left: 4px;
+    }
+    .coin-badge {
+      background: linear-gradient(135deg, #FFD700, #F0A500);
+      color: #fff; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 8px; margin-left: 4px;
+    }
+    .deadline-badge {
+      background: #FFEBEE; color: #E53935;
+      font-size: 10px; font-weight: 600;
+      padding: 1px 6px; border-radius: 8px; margin-left: 4px;
+    }
+    .task-check {
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+    }
+    .task-check.done { background: var(--success); color: #fff; }
+    .task-check.pending { background: #eee; color: #ccc; }
+    .task-check.clickable { cursor: pointer; }
+    .task-check.clickable:active { transform: scale(0.85); }
+
+    /* 成就列表 */
+    .ach-section { padding: 6px 12px 12px; }
+    .ach-row {
+      display: flex; align-items: center;
+      background: #f8f9fb; border-radius: 12px;
+      padding: 10px 12px; margin-bottom: 6px; transition: all 0.3s;
+    }
+    .ach-row.unlocked { background: linear-gradient(135deg, #FFFBE8, #FFF3CD); border: 2px solid #FDCB6E; }
+    .ach-row.unlocked.new-unlock { animation: unlock-shine 1.5s ease-in-out; }
+    .ach-icon { font-size: 26px; margin-right: 12px; }
+    .ach-name { font-size: 14px; font-weight: 700; color: #2D3436; }
+    .ach-desc { font-size: 11px; color: #888; }
+    .ach-badge { margin-left: auto; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+    .ach-badge.done { background: #FDCB6E; color: #7d5b00; }
+    .ach-badge.pending { background: #eee; color: #aaa; }
+    @keyframes unlock-shine {
+      0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.6); }
+      50% { box-shadow: 0 0 20px 8px rgba(255,215,0,0.3); }
+      100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+    }
+
+    /* ===== v3.1: 活动横幅 ===== */
+    .event-banner {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: linear-gradient(135deg, #FF9500, #FFD700);
+      border-radius: 20px; padding: 6px 14px; margin-bottom: 10px;
+      font-size: 12px; color: #fff; font-weight: 700;
+      animation: banner-pulse 2s ease-in-out infinite;
+    }
+    .event-banner.weekend { background: linear-gradient(135deg, #FF6B6B, #FFD93D); }
+    .event-banner .event-icon { font-size: 16px; }
+    @keyframes banner-pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+
+    /* ===== v3.1: 随机惊喜弹窗 ===== */
+    .surprise-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.6); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      animation: overlay-in 0.3s ease;
+    }
+    .surprise-card {
+      background: #fff; border-radius: 28px; padding: 32px 28px;
+      text-align: center; max-width: 320px; width: 90%;
+      animation: surprise-bounce 0.5s cubic-bezier(.4,2,.6,1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .surprise-icon { font-size: 60px; margin-bottom: 12px; animation: surprise-spin 1s ease-in-out; }
+    .surprise-title { font-size: 20px; font-weight: 800; color: #2D3436; margin-bottom: 8px; }
+    .surprise-desc { font-size: 15px; color: #666; margin-bottom: 20px; line-height: 1.5; }
+    .surprise-btn {
+      background: linear-gradient(135deg, #FFD700, #FF9500);
+      color: #fff; border: none; padding: 12px 32px;
+      border-radius: 20px; font-size: 16px; font-weight: 700;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(255,149,0,0.4);
+    }
+    @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes surprise-bounce {
+      0% { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+      60% { transform: scale(1.05) rotate(2deg); }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    @keyframes surprise-spin {
+      0% { transform: rotate(0deg) scale(0); }
+      50% { transform: rotate(15deg) scale(1.2); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    /* ===== v3.1: 宠物心情状态样式 ===== */
+    .pet-avatar.mood-sad .dragon-svg-wrap { filter: grayscale(40%) brightness(0.85) drop-shadow(0 4px 12px rgba(0,0,0,0.2)); animation-duration: 5s !important; }
+    .pet-avatar.mood-happy .dragon-svg-wrap { filter: brightness(1.1) saturate(1.2) drop-shadow(0 4px 12px rgba(0,0,0,0.15)); }
+    .pet-avatar.mood-hiding .dragon-svg-wrap { filter: grayscale(60%) brightness(0.7); animation-duration: 6s !important; transform: scale(0.92); }
+    .pet-avatar.mood-begging .dragon-svg-wrap { animation-duration: 1.5s !important; }
+    
+    /* 持久化心情气泡（不是互动时一闪而过的） */
+    .mood-bubble {
+      position: absolute;
+      top: -40px; left: 50%;
+      transform: translateX(-50%);
+      background: #fff; color: #2D3436;
+      padding: 6px 14px; border-radius: 16px;
+      font-size: 13px; font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      z-index: 20;
+      animation: mood-bubble-float 3s ease-in-out infinite;
+    }
+    .mood-bubble::after {
+      content: ''; position: absolute;
+      bottom: -6px; left: 50%; transform: translateX(-50%);
+      border-left: 6px solid transparent; border-right: 6px solid transparent;
+      border-top: 8px solid #fff;
+    }
+    @keyframes mood-bubble-float {
+      0%,100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-4px); }
+    }
+
+    /* ===== 商店 Tab ===== */
+    .shop-section { padding: 14px 12px; }
+    .coin-balance-card {
+      background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+      border-radius: 16px; padding: 16px; text-align: center; margin-bottom: 14px;
+      border: 2px solid #FFD700;
+    }
+    .coin-balance-num { font-size: 36px; font-weight: 900; color: #F0A500; }
+    .coin-balance-label { font-size: 13px; color: #A1887F; }
+    .shop-category { margin-bottom: 14px; }
+    .shop-cat-title { font-size: 13px; font-weight: 700; color: #666; margin-bottom: 8px; }
+    .shop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .shop-item {
+      background: #f8f9fb; border-radius: 14px; padding: 12px 8px; text-align: center;
+      cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
+    }
+    .shop-item:active { transform: scale(0.95); }
+    .shop-item.owned { border-color: #55EFC4; opacity: 0.7; }
+    .shop-item.equipped { border-color: var(--primary); background: #F3E5F5; opacity: 1; }
+    .shop-item-icon { font-size: 28px; margin-bottom: 4px; }
+    .shop-item-name { font-size: 11px; font-weight: 600; color: #2D3436; margin-bottom: 4px; }
+    .shop-item-price { font-size: 11px; font-weight: 700; color: #F0A500; }
+    .shop-item-status { font-size: 10px; color: #aaa; }
+
+    /* 零花钱兑换卡片 */
+    .pocket-exchange {
+      background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+      border-radius: 16px; padding: 16px; margin-bottom: 12px;
+    }
+    .pocket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .pocket-title { font-size: 15px; font-weight: 700; color: #2E7D32; }
+    .pocket-rate { font-size: 12px; color: #66BB6A; }
+    .pocket-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .pocket-input {
+      flex: 1; padding: 10px 12px; border: 2px solid #A5D6A7;
+      border-radius: 12px; font-size: 14px; font-weight: 600; outline: none;
+    }
+    .pocket-input:focus { border-color: #66BB6A; }
+    .pocket-btn {
+      padding: 10px 16px; background: linear-gradient(135deg, #66BB6A, #43A047);
+      color: #fff; border: none; border-radius: 12px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .pocket-btn:active { transform: scale(0.95); }
+    .pocket-weekly { font-size: 11px; color: #81C784; }
+
+    /* 钱包入口 */
+    .wallet-link {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 12px; background: #f1f3f8; border-radius: 14px;
+      font-size: 14px; font-weight: 600; color: var(--primary);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .wallet-link:active { transform: scale(0.97); }
+
+    /* ===== 家长模式面板 ===== */
+    .parent-panel {
+      background: #fff; border-radius: 24px;
+      padding: 16px 14px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      margin-bottom: 12px; display: none;
+    }
+    .parent-panel.show { display: block; }
+    .parent-section { margin-bottom: 16px; }
+    .parent-section:last-child { margin-bottom: 0; }
+    .parent-section h5 {
+      font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #2D3436;
+      padding-bottom: 8px; border-bottom: 2px solid #f0f0f0;
+    }
+
+    /* 家长额外任务模板 */
+    .template-cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .cat-chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; border: 2px solid #eee; color: #666;
+    }
+    .cat-chip.active { border-color: var(--primary); color: var(--primary); background: #F3E5F5; }
+    .template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .template-btn {
+      padding: 10px 8px; background: #f8f9fb; border-radius: 10px;
+      text-align: left; cursor: pointer; transition: all 0.2s;
+      border: 2px solid transparent; font-size: 12px;
+    }
+    .template-btn:active { transform: scale(0.96); }
+    .template-btn.selected { border-color: var(--primary); background: #F3E5F5; }
+    .template-btn .t-name { font-weight: 600; color: #2D3436; }
+    .template-btn .t-info { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+    /* 截止时间选择 */
+    .deadline-row { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+    .deadline-chip {
+      padding: 5px 12px; border-radius: 16px; font-size: 11px; font-weight: 600;
+      cursor: pointer; background: #f1f3f8; color: #666; border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .deadline-chip.active { border-color: var(--warning); background: #FFF8E1; color: #F57F17; }
+
+    .parent-btn {
+      width: 100%; padding: 12px; border: none;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff; font-size: 14px; font-weight: 700;
+      border-radius: 12px; cursor: pointer; transition: all 0.2s;
+    }
+    .parent-btn:active { transform: scale(0.97); }
+
+    /* 家长已布置任务列表 */
+    .parent-task-list { margin-top: 10px; }
+    .parent-task-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #f8f9fb; border-radius: 10px; padding: 8px 10px; margin-bottom: 6px;
+    }
+    .parent-task-info { flex: 1; }
+    .parent-task-name { font-size: 13px; font-weight: 600; color: #2D3436; }
+    .parent-task-meta { font-size: 11px; color: #aaa; }
+    .parent-task-del {
+      width: 28px; height: 28px; border-radius: 50%; border: none;
+      background: #FFEBEE; color: #E53935; font-size: 14px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    /* 行为评价面板 */
+    .behavior-cats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .bh-cat-chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 2px solid #eee; color: #666; transition: all 0.2s;
+    }
+    .bh-cat-chip.active { border-color: #66BB6A; background: #E8F5E9; }
+    .bh-rules { display: flex; flex-wrap: wrap; gap: 6px; }
+    .bh-rule-btn {
+      padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; border: none;
+    }
+    .bh-rule-btn.positive { background: #E8F5E9; color: #2E7D32; }
+    .bh-rule-btn.negative { background: #FFEBEE; color: #C62828; }
+    .bh-rule-btn:active { transform: scale(0.92); }
+    .bh-today-list { margin-top: 10px; }
+    .bh-record {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px;
+    }
+    .bh-record:last-child { border-bottom: none; }
+    .bh-record-icon { font-size: 16px; }
+    .bh-record-name { flex: 1; color: #2D3436; font-weight: 500; }
+    .bh-record-coins { font-weight: 700; }
+    .bh-record-coins.pos { color: #2E7D32; }
+    .bh-record-coins.neg { color: #C62828; }
+
+    /* 零花钱审批 */
+    .pocket-approve-list { margin-top: 8px; }
+    .pocket-approve-row {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #FFF8E1; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+      border: 1.5px solid #FFD700;
+    }
+    .pocket-approve-info { flex: 1; }
+    .pocket-approve-amount { font-size: 15px; font-weight: 700; color: #F57F17; }
+    .pocket-approve-detail { font-size: 11px; color: #A1887F; }
+    .pocket-approve-btns { display: flex; gap: 6px; }
+    .approve-btn {
+      padding: 6px 14px; border: none; border-radius: 10px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .approve-yes { background: #66BB6A; color: #fff; }
+    .approve-no { background: #EF5350; color: #fff; }
+
+    /* 家长设置 */
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid #f5f5f5;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 13px; color: #2D3436; }
+    .settings-input {
+      width: 80px; padding: 6px 10px; border: 2px solid #eee; border-radius: 8px;
+      font-size: 14px; font-weight: 600; text-align: center; outline: none;
+    }
+    .settings-input:focus { border-color: var(--primary); }
+
+    /* ===== 角色切换 ===== */
+    .role-switch {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; padding: 12px 0;
+      color: rgba(255,255,255,0.85); font-size: 13px;
+    }
+    .role-btn {
+      padding: 7px 18px; background: rgba(255,255,255,0.2);
+      border-radius: 20px; color: #fff; font-weight: 600;
+      text-decoration: none; transition: all 0.2s;
+      border: 1.5px solid rgba(255,255,255,0.3);
+    }
+    .role-btn:hover { background: rgba(255,255,255,0.35); color: #fff; }
+
+    /* ===== 动画 ===== */
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes bounce-in { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes slide-up { 0% { transform: translateY(40px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes shake { 0%,100% { transform: translateX(0) rotate(0); } 20% { transform: translateX(-8px) rotate(-5deg); } 40% { transform: translateX(8px) rotate(5deg); } 60% { transform: translateX(-5px) rotate(-3deg); } 80% { transform: translateX(5px) rotate(3deg); } }
+
+    /* ===== 庆祝层 ===== */
+    #celebrate-layer { position: fixed; inset: 0; z-index: 9000; pointer-events: none; display: none; }
+    #celebrate-text {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      font-size: 48px; font-weight: 900; color: #fff; text-shadow: 0 4px 30px rgba(0,0,0,0.4);
+      z-index: 9001; display: none; text-align: center;
+      animation: bounce-in 0.5s cubic-bezier(.4,2,.6,1); line-height: 1.3;
+    }
+    .particle { position: fixed; border-radius: 50%; pointer-events: none; animation: fall linear forwards; }
+    @keyframes fall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+    /* ===== 进化动画覆盖层 ===== */
+    .evolution-overlay {
+      position: fixed; inset: 0; z-index: 9500;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.85);
+    }
+    .evolution-overlay.show { display: flex; }
+    .evolution-content {
+      text-align: center; color: #fff;
+      animation: evolution-appear 1s ease;
+    }
+    .evolution-flash {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle, #fff 0%, transparent 70%);
+      animation: flash 1s ease-out;
+    }
+    @keyframes flash { 0% { opacity: 1; transform: scale(0.5); } 100% { opacity: 0; transform: scale(3); } }
+    @keyframes evolution-appear {
+      0% { transform: scale(0.3); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .evo-text-main { font-size: 42px; font-weight: 900; animation: bounce-in 0.8s 0.5s both; }
+    .evo-text-sub { font-size: 22px; font-weight: 700; margin-top: 8px; animation: slide-up 0.5s 1s both; }
+    .evo-text-detail { font-size: 16px; opacity: 0.8; margin-top: 16px; animation: slide-up 0.5s 1.3s both; }
+
+    /* ===== 专注打卡覆盖层 ===== */
+    .focus-overlay {
+      position: fixed; inset: 0; z-index: 8500;
+      display: none; align-items: center; justify-content: center;
+      background: linear-gradient(160deg, #2C3E50ee, #4A235Aee);
+      backdrop-filter: blur(10px);
+    }
+    .focus-overlay.show { display: flex; }
+    .focus-content { text-align: center; color: #fff; width: 100%; max-width: 360px; padding: 20px; }
+    .focus-timer-ring {
+      width: 200px; height: 200px; margin: 20px auto;
+      position: relative;
+    }
+    .focus-timer-ring svg { transform: rotate(-90deg); }
+    .focus-ring-bg { fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 10; }
+    .focus-ring-fg {
+      fill: none; stroke: #A29BFE; stroke-width: 10;
+      stroke-linecap: round; transition: stroke-dashoffset 1s linear;
+    }
+    .focus-ring-center {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      text-align: center;
+    }
+    .focus-time { font-size: 40px; font-weight: 900; }
+    .focus-label { font-size: 13px; opacity: 0.7; }
+    .focus-dragon {
+      font-size: 50px; margin-bottom: 10px;
+      animation: focus-dragon-idle 4s ease-in-out infinite;
+    }
+    @keyframes focus-dragon-idle {
+      0%,100% { transform: translateY(0); }
+      30% { transform: translateY(-3px); }
+      60% { transform: translateY(1px); }
+    }
+    .focus-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .focus-subtitle { font-size: 14px; opacity: 0.7; margin-bottom: 16px; }
+    .focus-duration-select { display: flex; gap: 10px; justify-content: center; margin-bottom: 24px; }
+    .focus-dur-btn {
+      padding: 14px 20px; border-radius: 16px;
+      background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+      color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+      min-width: 80px;
+    }
+    .focus-dur-btn:active { transform: scale(0.95); }
+    .focus-dur-btn.selected { background: var(--primary); border-color: var(--primary); }
+    .focus-start-btn {
+      padding: 14px 40px; border-radius: 16px; border: none;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff; font-size: 17px; font-weight: 800; cursor: pointer;
+      box-shadow: 0 6px 20px rgba(108,92,231,0.5);
+    }
+    .focus-cancel-btn {
+      padding: 10px 24px; border-radius: 12px;
+      background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.8); font-size: 14px; cursor: pointer; margin-top: 16px;
+    }
+
+    /* ===== 宝箱弹窗 ===== */
+    .treasure-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 8000; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .treasure-modal-overlay.show { display: flex; }
+    .treasure-box {
+      background: #fff; border-radius: 28px; padding: 32px 24px; text-align: center;
+      max-width: 300px; width: 100%;
+      animation: bounce-in 0.5s cubic-bezier(.4,2,.6,1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .treasure-chest { font-size: 72px; margin-bottom: 12px; animation: shake 0.8s ease-in-out 0.3s; }
+    .treasure-title { font-size: 20px; font-weight: 800; color: #2D3436; margin-bottom: 6px; }
+    .treasure-subtitle { font-size: 14px; color: #636E72; margin-bottom: 16px; }
+    .treasure-reward { background: linear-gradient(135deg, #FFF3CD, #FFEAA7); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+    .reward-icon { font-size: 44px; margin-bottom: 6px; }
+    .reward-name { font-size: 16px; font-weight: 800; color: #7d5b00; }
+    .reward-type { font-size: 11px; color: #aaa; margin-top: 3px; }
+    .treasure-btn {
+      width: 100%; padding: 12px; background: linear-gradient(135deg, #FFD700, #FF9500);
+      color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer;
+    }
+
+    /* ===== 鼓励消息气泡弹窗 ===== */
+    .encourage-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 7000; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .encourage-overlay.show { display: flex; }
+    .encourage-popup {
+      background: #fff; border-radius: 24px; padding: 24px 20px; max-width: 280px; width: 100%;
+      text-align: center; animation: bounce-in 0.4s cubic-bezier(.4,2,.6,1);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+    }
+    .encourage-popup .heart { font-size: 48px; margin-bottom: 10px; }
+    .encourage-popup .from { font-size: 12px; color: #aaa; margin-bottom: 6px; }
+    .encourage-popup .msg { font-size: 16px; font-weight: 700; color: #2D3436; margin-bottom: 16px; line-height: 1.5; }
+    .encourage-popup button {
+      padding: 10px 28px; background: linear-gradient(135deg, #FD79A8, #e84393);
+      color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+
+    /* ===== 睡眠覆盖层 ===== */
+    .sleep-overlay {
+      position: fixed; inset: 0;
+      background: linear-gradient(160deg, #2C3E50cc, #4A235Acc);
+      backdrop-filter: blur(6px); z-index: 6000;
+      display: none; align-items: center; justify-content: center;
+      padding: 20px; text-align: center;
+    }
+    .sleep-overlay.show { display: flex; }
+    .sleep-card {
+      background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2);
+      border-radius: 28px; padding: 36px 24px; color: #fff; max-width: 300px;
+      animation: slide-up 0.5s ease;
+    }
+    .sleep-emoji { font-size: 72px; margin-bottom: 12px; }
+    .sleep-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .sleep-desc { font-size: 14px; opacity: 0.85; line-height: 1.6; margin-bottom: 20px; }
+    .sleep-tip { display: block; margin-top: 10px; font-size: 13px; opacity: 0.9; background: rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 10px; }
+    .sleep-reason { font-size: 13px; opacity: 0.8; margin-bottom: 10px; color: #FDCB6E; }
+    .sleep-big-emoji { font-size: 80px; display: block; }
+    .sleep-dragon-wrap { position: relative; display: inline-block; margin-bottom: 12px; }
+    .zzz-float { position: absolute; top: -10px; right: -20px; }
+    .zzz { font-weight: 700; color: #a29bfe; opacity: 0.8; display: inline-block; }
+    .zzz.z1 { font-size: 16px; animation: zzzFloat 2s ease-in-out infinite; }
+    .zzz.z2 { font-size: 13px; animation: zzzFloat 2s ease-in-out infinite 0.4s; }
+    .zzz.z3 { font-size: 18px; animation: zzzFloat 2s ease-in-out infinite 0.8s; }
+    @keyframes zzzFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+      50% { transform: translateY(-12px) rotate(5deg); opacity: 1; }
+    }
+    .sleep-card button {
+      padding: 10px 24px; background: rgba(255,255,255,0.2);
+      border: 1.5px solid rgba(255,255,255,0.4); border-radius: 12px;
+      color: #fff; font-size: 14px; cursor: pointer;
+    }
+
+    /* ===== Sleeping 状态标签 ===== */
+    .sleep-tag {
+      display: inline-block; font-size: 10px; background: #a29bfe; color: #fff;
+      padding: 1px 8px; border-radius: 8px; vertical-align: middle;
+      animation: sleepPulse 2s ease-in-out infinite;
+    }
+    @keyframes sleepPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ===== Sleeping 禁用按钮样式 ===== */
+    .btn-sleeping-disabled {
+      opacity: 0.45 !important;
+      cursor: not-allowed !important;
+      transform: none !important;
+      filter: grayscale(30%);
+    }
+    .btn-sleep-hint { font-size: 11px; opacity: 0.8; margin-left: 4px; }
+
+    /* ===== 商店 Sleeping 禁用 ===== */
+    .shop-sleeping { opacity: 0.5; pointer-events: none; }
+    .shop-sleep-tag { font-size: 11px; color: #a29bfe; font-weight: 600; }
+    .item-disabled {
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
+      pointer-events: none;
+    }
+
+    /* ===== 完成任务弹窗 ===== */
+    .modal-content { border-radius: 20px !important; overflow: hidden; border: none !important; }
+    .subject-btn {
+      padding: 12px 8px; text-align: center; background: #f1f3f8; border-radius: 12px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+      color: #2D3436; border: 2px solid transparent;
+    }
+    .subject-btn.active { background: #6C5CE7; color: #fff; border-color: #6C5CE7; }
+    .subject-btn.math-btn { background: #FFF9E6; border-color: #FFD70055; }
+    .subject-btn.math-btn.active { background: linear-gradient(135deg, #FFD700, #FF9500); color: #fff; border-color: #FF9500; }
+    .subject-btn:active { transform: scale(0.96); }
+
+    /* ===== Toast ===== */
+    #toast-wrap {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 9999; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none;
+    }
+    .toast-msg {
+      background: rgba(0,0,0,0.78); color: #fff; padding: 10px 20px;
+      border-radius: 28px; font-size: 14px; font-weight: 600;
+      animation: slide-up 0.3s ease, fadeout 0.5s 2.3s forwards; white-space: nowrap;
+    }
+    @keyframes fadeout { to { opacity: 0; transform: translateY(-8px); } }
+
+    /* ===== 家长密码弹窗 ===== */
+    .parent-verify-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 9800; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .parent-verify-overlay.show { display: flex; }
+    .parent-verify-box {
+      background: #fff; border-radius: 24px; padding: 28px 24px; max-width: 320px; width: 100%;
+      text-align: center; animation: bounce-in 0.4s cubic-bezier(.4,2,.6,1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .parent-verify-icon { font-size: 48px; margin-bottom: 10px; }
+    .parent-verify-title { font-size: 20px; font-weight: 800; color: #2D3436; margin-bottom: 6px; }
+    .parent-verify-desc { font-size: 13px; color: #888; margin-bottom: 16px; }
+    .parent-verify-input {
+      width: 100%; padding: 14px 16px; border: 2px solid #eee; border-radius: 14px;
+      font-size: 18px; font-weight: 700; text-align: center; letter-spacing: 8px; outline: none;
+    }
+    .parent-verify-input:focus { border-color: var(--primary); }
+    .parent-verify-btn {
+      width: 100%; padding: 14px; margin-top: 14px; border: none; border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .parent-verify-btn:active { transform: scale(0.97); }
+    .parent-verify-error { font-size: 13px; color: #E53935; margin-top: 8px; display: none; }
+    .parent-verify-close {
+      position: absolute; top: 12px; right: 16px; font-size: 24px; cursor: pointer; color: #aaa; background: none; border: none;
+    }
+
+    /* ===== 食物飞入动画 ===== */
+    .food-fly {
+      position: fixed; z-index: 8000; pointer-events: none;
+      font-size: 40px;
+      animation: food-fly-anim 1s cubic-bezier(.4,2,.6,1) forwards;
+    }
+    @keyframes food-fly-anim {
+      0% { opacity: 1; transform: scale(1.5) rotate(0deg); }
+      40% { opacity: 1; transform: scale(1) rotate(15deg); }
+      70% { opacity: 1; transform: scale(0.8) rotate(-5deg); }
+      100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+    }
+
+    /* ===== 瑞星小狮子风格互动动画 ===== */
+    /* 摸头：龙被摸得缩小抖动+爱心爆发 */
+    .dragon-pat .dragon-svg-wrap {
+      animation: pat-shake 0.6s ease-in-out !important;
+    }
+    @keyframes pat-shake {
+      0% { transform: scale(1) rotate(0); }
+      15% { transform: scale(0.92) rotate(-8deg); }
+      30% { transform: scale(0.95) rotate(6deg); }
+      45% { transform: scale(0.9) rotate(-4deg); }
+      60% { transform: scale(0.97) rotate(3deg); }
+      80% { transform: scale(0.98) rotate(-1deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    /* 挠痒：龙左右疯狂扭动+弹跳 */
+    .dragon-tickle .dragon-svg-wrap {
+      animation: tickle-wiggle 0.8s ease-in-out !important;
+    }
+    @keyframes tickle-wiggle {
+      0% { transform: translateX(0) rotate(0) scale(1); }
+      10% { transform: translateX(-12px) rotate(-12deg) scale(0.95); }
+      20% { transform: translateX(10px) rotate(10deg) scale(1.05); }
+      30% { transform: translateX(-10px) rotate(-10deg) scale(0.95); }
+      40% { transform: translateX(8px) rotate(8deg) scale(1.03); }
+      50% { transform: translateX(-6px) rotate(-6deg) scale(0.97); }
+      60% { transform: translateX(5px) rotate(5deg) scale(1.02); }
+      70% { transform: translateX(-3px) rotate(-3deg) scale(0.98); }
+      80% { transform: translateX(2px) rotate(2deg); }
+      100% { transform: translateX(0) rotate(0) scale(1); }
+    }
+
+    /* 逗玩：龙原地转圈跳跃 */
+    .dragon-play .dragon-svg-wrap {
+      animation: play-jump 1s ease-in-out !important;
+    }
+    @keyframes play-jump {
+      0% { transform: translateY(0) rotate(0) scale(1); }
+      15% { transform: translateY(-25px) rotate(15deg) scale(0.9); }
+      30% { transform: translateY(0) rotate(0) scale(1.1); }
+      45% { transform: translateY(-20px) rotate(-15deg) scale(0.9); }
+      60% { transform: translateY(0) rotate(0) scale(1.08); }
+      75% { transform: translateY(-12px) rotate(10deg) scale(0.95); }
+      100% { transform: translateY(0) rotate(0) scale(1); }
+    }
+
+    /* 喂食：龙张大嘴+吞咽动画 */
+    .dragon-feed .dragon-svg-wrap {
+      animation: feed-chomp 0.8s ease-in-out !important;
+    }
+    @keyframes feed-chomp {
+      0% { transform: scale(1); }
+      15% { transform: scale(1.15) translateY(-5px); }
+      30% { transform: scale(0.9) translateY(5px); }
+      45% { transform: scale(1.08); }
+      60% { transform: scale(0.95); }
+      75% { transform: scale(1.03); }
+      90% { transform: scale(0.98); }
+      100% { transform: scale(1); }
+    }
+
+    /* 满足表情 */
+    .dragon-satisfied .dragon-svg-wrap {
+      animation: satisfied-bounce 1.2s ease-in-out !important;
+    }
+    @keyframes satisfied-bounce {
+      0% { transform: scale(1) rotate(0); }
+      20% { transform: scale(1.1) rotate(5deg); }
+      40% { transform: scale(0.95) rotate(-3deg); }
+      60% { transform: scale(1.05) rotate(2deg); }
+      80% { transform: scale(0.98); }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    /* ===== 孩子端：今日评价记录 ===== */
+    .kid-behavior-section { padding: 8px 12px 14px; }
+    .kid-bh-summary {
+      display: flex; gap: 10px; margin-bottom: 10px;
+    }
+    .kid-bh-stat {
+      flex: 1; text-align: center; padding: 10px 6px;
+      background: #f8f9fb; border-radius: 12px;
+    }
+    .kid-bh-stat-num { font-size: 20px; font-weight: 800; }
+    .kid-bh-stat-num.pos { color: #2E7D32; }
+    .kid-bh-stat-num.neg { color: #C62828; }
+    .kid-bh-stat-num.net { color: var(--primary); }
+    .kid-bh-stat-label { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .kid-bh-list { max-height: 200px; overflow-y: auto; }
+
+    /* ===== 全屏完成提示 ===== */
+    .all-done-banner {
+      background: linear-gradient(135deg, #00B894, #55EFC4);
+      border-radius: 14px; padding: 12px 16px;
+      color: #fff; text-align: center;
+      font-size: 15px; font-weight: 700;
+      margin: 6px 12px; animation: bounce-in 0.5s cubic-bezier(.4,2,.6,1);
+      box-shadow: 0 6px 24px rgba(0,184,148,0.35);
+    }
+    .all-done-banner span { font-size: 20px; }
+
+    /* ===== 确认弹窗 ===== */
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 8200; display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .confirm-overlay.show { display: flex; }
+    .confirm-box {
+      background: #fff; border-radius: 20px; padding: 24px 20px; max-width: 280px; width: 100%;
+      text-align: center; animation: bounce-in 0.4s cubic-bezier(.4,2,.6,1);
+    }
+    .confirm-title { font-size: 18px; font-weight: 700; color: #2D3436; margin-bottom: 8px; }
+    .confirm-msg { font-size: 14px; color: #666; margin-bottom: 16px; }
+    .confirm-btns { display: flex; gap: 10px; }
+    .confirm-btn {
+      flex: 1; padding: 10px; border: none; border-radius: 12px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .confirm-yes { background: #EF5350; color: #fff; }
+    .confirm-no { background: #f0f0f0; color: #666; }
+
+    /* ===== 钱包弹窗 ===== */
+    .wallet-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 8300; display: none; align-items: center; justify-content: center; padding: 12px;
+    }
+    .wallet-overlay.show { display: flex; }
+    .wallet-popup {
+      background: #fff; border-radius: 24px; max-width: 380px; width: 100%;
+      max-height: 85vh; overflow-y: auto; animation: bounce-in 0.4s cubic-bezier(.4,2,.6,1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .wallet-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 8px;
+    }
+    .wallet-title { font-size: 20px; font-weight: 800; color: #2D3436; }
+    .wallet-close {
+      width: 32px; height: 32px; border-radius: 50%; border: none;
+      background: #f0f0f0; font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; color: #888;
+    }
+    .wallet-balance-section {
+      background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+      margin: 0 16px 12px; border-radius: 16px; padding: 16px; text-align: center;
+      border: 2px solid #FFD700;
+    }
+    .wallet-balance-label { font-size: 13px; color: #A1887F; margin-bottom: 4px; }
+    .wallet-balance-num { font-size: 40px; font-weight: 900; color: #F0A500; }
+    .wallet-stats {
+      display: flex; gap: 8px; padding: 0 16px 12px;
+    }
+    .wallet-stat-card {
+      flex: 1; background: #f8f9fb; border-radius: 12px; padding: 10px 6px; text-align: center;
+    }
+    .wallet-stat-value { font-size: 18px; font-weight: 800; color: #2D3436; }
+    .wallet-stat-label { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .wallet-txn-title {
+      font-size: 13px; font-weight: 700; color: #888; padding: 8px 20px 6px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .wallet-txn-list { padding: 0 16px 16px; max-height: 260px; overflow-y: auto; }
+    .wallet-txn-item {
+      display: flex; align-items: center; padding: 8px 0;
+      border-bottom: 1px solid #f5f5f5; font-size: 13px;
+    }
+    .wallet-txn-item:last-child { border-bottom: none; }
+    .wallet-txn-icon { font-size: 20px; margin-right: 10px; width: 32px; text-align: center; }
+    .wallet-txn-info { flex: 1; }
+    .wallet-txn-desc { font-size: 13px; font-weight: 600; color: #2D3436; }
+    .wallet-txn-time { font-size: 11px; color: #bbb; margin-top: 1px; }
+    .wallet-txn-amount { font-size: 15px; font-weight: 800; }
+    .wallet-txn-amount.pos { color: #2E7D32; }
+    .wallet-txn-amount.neg { color: #E53935; }
+
+    /* ===== 周报弹窗 ===== */
+    .weekly-summary {
+      display: flex; gap: 8px; padding: 12px 16px; flex-wrap: wrap; justify-content: center;
+    }
+    .weekly-summary-item {
+      background: #f8f9fb; border-radius: 12px; padding: 10px 14px; text-align: center; min-width: 80px;
+    }
+    .weekly-summary-num { font-size: 22px; font-weight: 900; color: var(--primary); }
+    .weekly-summary-label { font-size: 10px; color: #aaa; margin-top: 2px; }
+    .weekly-chart-area { padding: 4px 16px 16px; }
+    .chart-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .chart-tab {
+      flex: 1; text-align: center; padding: 8px 4px; border-radius: 10px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      background: #f1f3f8; color: #888; transition: all 0.2s;
+    }
+    .chart-tab.active { background: var(--primary); color: #fff; }
+    #weeklyChartCanvas { width: 100%; border-radius: 12px; background: #fafbfc; }
+  
+    /* v3.2 新情绪状态样式 */
+    .pet-avatar.mood-angry .dragon-svg-wrap {
+      filter: hue-rotate(-20deg) saturate(1.5) brightness(0.9);
+      animation: shake 0.5s ease-in-out !important;
+    }
+    .pet-avatar.mood-wronged .dragon-svg-wrap {
+      filter: grayscale(30%) brightness(0.8) drop-shadow(0 4px 12px rgba(100,100,255,0.3));
+      animation-duration: 6s !important;
+    }
+    .pet-avatar.mood-proud .dragon-svg-wrap {
+      filter: brightness(1.15) saturate(1.3) drop-shadow(0 0 20px rgba(255,215,0,0.4));
+      animation: proud-float 2.5s ease-in-out infinite !important;
+    }
+    @keyframes proud-float {
+      0%,100% { transform: translateY(0) rotate(0); }
+      25% { transform: translateY(-8px) rotate(-3deg); }
+      75% { transform: translateY(-4px) rotate(3deg); }
+    }
+    /* v3.2 皮肤样式 */
+    .skin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .skin-card {
+      background: #f8f9fb; border-radius: 14px; padding: 12px; text-align: center;
+      cursor: pointer; transition: all 0.2s; border: 2px solid transparent;
+    }
+    .skin-card:active { transform: scale(0.95); }
+    .skin-card.current { border-color: var(--primary); background: #F3E5F5; }
+    .skin-card .card-icon { font-size: 32px; margin-bottom: 4px; }
+    .skin-card .card-name { font-size: 12px; font-weight: 600; color: #2D3436; }
+    .skin-card .card-desc { font-size: 9px; color: #aaa; margin-top: 2px; }
+
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div id="toast-wrap"></div>
+<!-- 庆祝层 -->
+<div id="celebrate-layer"></div>
+<div id="celebrate-text"></div>
+
+<!-- 进化动画覆盖层 -->
+<div class="evolution-overlay" id="evolutionOverlay">
+  <div class="evolution-flash"></div>
+  <div class="evolution-content">
+    <div class="evo-text-main">✨ 进化了！✨</div>
+    <div class="evo-text-sub" id="evoStageName"></div>
+    <div class="evo-text-detail" id="evoDetail"></div>
+  </div>
+</div>
+
+<!-- 专注打卡覆盖层 -->
+<div class="focus-overlay" id="focusOverlay">
+  <div class="focus-content" id="focusContent">
+    <!-- 动态内容：选择时长 / 计时中 / 完成 -->
+  </div>
+</div>
+
+<!-- 家长密码验证弹窗 -->
+<div class="parent-verify-overlay" id="parentVerifyOverlay">
+  <div class="parent-verify-box" style="position:relative;">
+    <button class="parent-verify-close" onclick="closeParentVerify()">×</button>
+    <div class="parent-verify-icon">🔐</div>
+    <div class="parent-verify-title">家长验证</div>
+    <div class="parent-verify-desc">请输入家长密码才能进入管理模式</div>
+    <input type="password" class="parent-verify-input" id="parentPasswordInput" placeholder="····" maxlength="8" 
+           onkeydown="if(event.key==='Enter')verifyParentPassword()">
+    <div class="parent-verify-error" id="parentVerifyError">密码错误，请重试</div>
+    <button class="parent-verify-btn" onclick="verifyParentPassword()">验证并进入 👨‍👩‍👧</button>
+  </div>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirmTitle"></div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-btns">
+      <button class="confirm-btn confirm-no" onclick="closeConfirm()">取消</button>
+      <button class="confirm-btn confirm-yes" id="confirmYesBtn">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 钱包弹窗 -->
+<div class="wallet-overlay" id="walletOverlay">
+  <div class="wallet-popup">
+    <div class="wallet-header">
+      <div class="wallet-title">📊 我的钱包</div>
+      <button class="wallet-close" onclick="closeWallet()">×</button>
+    </div>
+    <div class="wallet-balance-section">
+      <div class="wallet-balance-label">龙币余额</div>
+      <div class="wallet-balance-num" id="walletBalanceNum">🪙 0</div>
+    </div>
+    <div class="wallet-stats">
+      <div class="wallet-stat-card">
+        <div class="wallet-stat-value" id="walletWeeklyPocket">¥0</div>
+        <div class="wallet-stat-label">本周零花钱</div>
+      </div>
+      <div class="wallet-stat-card">
+        <div class="wallet-stat-value" id="walletMonthlyPocket">¥0</div>
+        <div class="wallet-stat-label">本月零花钱</div>
+      </div>
+      <div class="wallet-stat-card">
+        <div class="wallet-stat-value" id="walletTotalPocket">¥0</div>
+        <div class="wallet-stat-label">累计零花钱</div>
+      </div>
+    </div>
+    <div class="wallet-txn-title">近期交易记录</div>
+    <div class="wallet-txn-list" id="walletTxnList">
+      <div style="text-align:center;color:#aaa;padding:20px;">加载中...</div>
+    </div>
+  </div>
+</div>
+
+<!-- 周报弹窗 -->
+<div class="wallet-overlay" id="weeklyReportOverlay">
+  <div class="wallet-popup" style="max-width:420px;">
+    <div class="wallet-header">
+      <div class="wallet-title">📈 学习周报</div>
+      <button class="wallet-close" onclick="closeWeeklyReport()">×</button>
+    </div>
+    <div class="weekly-summary" id="weeklySummary"></div>
+    <div class="weekly-chart-area">
+      <div class="chart-tabs" id="chartTabs">
+        <div class="chart-tab active" onclick="switchChart('tasks', this)">📝 作业</div>
+        <div class="chart-tab" onclick="switchChart('coins', this)">🪙 龙币</div>
+        <div class="chart-tab" onclick="switchChart('focus', this)">🧘 专注</div>
+      </div>
+      <canvas id="weeklyChartCanvas" width="380" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 宝箱弹窗 -->
+<div class="treasure-modal-overlay" id="treasureModal">
+  <div class="treasure-box">
+    <div class="treasure-chest">🎁</div>
+    <div class="treasure-title">✨ 宝箱爆了！</div>
+    <div class="treasure-subtitle">数学小达人专属奖励</div>
+    <div class="treasure-reward">
+      <div class="reward-icon" id="rewardIcon">🏅</div>
+      <div class="reward-name" id="rewardName">数学小达人</div>
+      <div class="reward-type" id="rewardType">称号</div>
+    </div>
+    <button class="treasure-btn" onclick="closeTreasure()">🎉 太棒了！收下啦！</button>
+  </div>
+</div>
+
+<!-- 鼓励消息弹窗 -->
+<div class="encourage-overlay" id="encourageOverlay">
+  <div class="encourage-popup">
+    <div class="heart">💌</div>
+    <div class="from">爸爸/妈妈 送来鼓励：</div>
+    <div class="msg" id="encourageMsg">你是最棒的！</div>
+    <button onclick="closeEncourage()">😊 我知道啦！</button>
+  </div>
+</div>
+
+<!-- 算术题游戏弹窗 -->
+<div class="treasure-modal-overlay" id="mathQuizModal">
+  <div class="treasure-box" style="max-width:360px;">
+    <div class="treasure-chest" id="mathQuizIcon">🧮</div>
+    <div class="treasure-title" id="mathQuizTitle">算术题挑战</div>
+    <div class="treasure-subtitle" id="mathQuizSubtitle">看谁算得又快又准！</div>
+    <div id="mathQuizQuestion" style="font-size:28px;font-weight:800;color:#2D3436;margin:12px 0;text-align:center;"></div>
+    <div id="mathQuizResult" style="margin-bottom:12px;min-height:36px;text-align:center;"></div>
+    <div id="mathQuizOptions" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;"></div>
+    <div id="mathQuizRetry" style="display:none;text-align:center;margin-bottom:12px;">
+      <button onclick="startMathQuiz()" style="width:100%;padding:12px;background:linear-gradient(135deg,#6C5CE7,#A29BFE);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">🔄 再来一题</button>
+      <button onclick="closeMathQuiz()" style="width:100%;padding:10px;background:#f0f0f0;color:#666;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;">关闭</button>
+    </div>
+    <div id="mathQuizActions" style="text-align:center;">
+      <button onclick="closeMathQuiz()" style="width:100%;padding:10px;background:#f0f0f0;color:#666;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 改名弹窗 -->
+<div class="treasure-modal-overlay" id="renameModal">
+  <div class="treasure-box" style="max-width:320px;">
+    <div class="treasure-chest">✏️</div>
+    <div class="treasure-title">给小龙取个新名字</div>
+    <div class="treasure-subtitle">想一个你喜欢的新名字吧！</div>
+    <div style="margin-bottom:16px;">
+      <input type="text" id="renameInput" placeholder="输入新名字..." maxlength="20"
+        style="width:100%;padding:12px 14px;border:2px solid #eee;border-radius:12px;font-size:16px;font-weight:600;text-align:center;outline:none;"
+        onkeydown="if(event.key==='Enter')confirmRename()">
+    </div>
+    <button class="treasure-btn" onclick="confirmRename()" style="margin-bottom:8px;">✅ 确定改名</button>
+    <button onclick="closeRenameModal()" style="width:100%;padding:10px;background:#f0f0f0;color:#666;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;">取消</button>
+  </div>
+</div>
+
+<!-- 睡眠覆盖层 -->
+{% if pet.status == 'sleeping' %}
+<div class="sleep-overlay show" id="sleepOverlay">
+  <div class="sleep-card">
+    <div class="sleep-dragon-wrap">
+      <span class="sleep-big-emoji">😴</span>
+      <div class="zzz-float">
+        <span class="zzz z1">Z</span>
+        <span class="zzz z2">z</span>
+        <span class="zzz z3">Z</span>
+      </div>
+    </div>
+    <div class="sleep-title">小龙睡着了...</div>
+    <div class="sleep-reason">
+      {% if pet.runaway_until %}
+        ⏰ 预计醒来：{{ pet.runaway_until[11:16] if '+' not in pet.runaway_until and 'T' in pet.runaway_until else '明天早上' }}
+      {% else %}
+        📝 完成作业后小龙就会醒来
+      {% endif %}
+    </div>
+    <div class="sleep-desc">
+      嘘...小龙太累了，已经悄悄睡觉啦。<br>
+      <span class="sleep-tip">💡 唤醒方式：完成任意一项作业即可唤醒小龙</span>
+    </div>
+    <button onclick="document.getElementById('sleepOverlay').classList.remove('show')">我知道了 💪</button>
+  </div>
+</div>
+{% endif %}
+
+<div class="page-wrap">
+
+  <!-- ===== 宠物卡片 ===== -->
+  <div class="pet-card">
+    <div class="pet-header">
+      <!-- v3.1 活动横幅 -->
+      <div id="eventBanner" style="display:none;"></div>
+
+      <!-- 倒计时 -->
+      <div class="countdown-bar" id="countdownBar">
+        <span>⏰</span>
+        <span id="countdownLabel">黄金时段剩余：</span>
+        <span class="time-val" id="countdownVal">--:--</span>
+      </div>
+
+      <div class="pet-main">
+        <!-- 环形进度 -->
+        <div class="ring-wrap">
+          <svg width="90" height="90" viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="43"/>
+            <circle class="ring-fg" cx="50" cy="50" r="43"
+              id="ringFg"
+              stroke-dasharray="270"
+              stroke-dashoffset="{{ ((total_daily - done_daily) / total_daily * 270) | int if total_daily > 0 else 270 }}"
+            />
+          </svg>
+          <div class="ring-center">
+            <div class="ring-num">{{ done_daily }}/{{ total_daily }}</div>
+            <div class="ring-sub">今日</div>
+          </div>
+        </div>
+
+        <!-- 宠物中央 -->
+        <div class="pet-center">
+          <div class="pet-avatar" id="petAvatar">
+            <!-- v3.1 心情气泡占位 -->
+            <div class="mood-bubble" id="moodBubble" style="display:none;"></div>
+            <div class="dragon-svg-wrap dragon-stage-{{ appearance.stage }}">
+              <img src="{{ skin_stage_image }}" alt="{{ appearance.stage_name }}"
+                onerror="this.onerror=null;this.src='/static/dragon-references/Stage%20{{ appearance.stage }}%20{{ appearance.stage_name }}.jpeg';this.style.filter='{{ skin_filter }}';"
+                style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
+            </div>
+            {% if encourage %}
+            <div class="encourage-bubble" onclick="showEncourage(event)">💌</div>
+            {% endif %}
+          </div>
+
+          <!-- 互动按钮 -->
+          {% if pet.status != 'sleeping' %}
+          <div class="interact-btns">
+            <div class="interact-btn" onclick="doInteract('pat')" title="摸头">🤚</div>
+            <div class="interact-btn" onclick="doInteract('tickle')" title="挠痒">🤗</div>
+            <div class="interact-btn" onclick="doInteract('play')" title="逗玩">🎾</div>
+            <div class="interact-btn" onclick="startMathQuiz()" title="算术题">🧮</div>
+          </div>
+          {% else %}
+          <div class="interact-btns" style="opacity:0.4;">
+            <div class="interact-btn disabled" title="小龙睡着了">🤚</div>
+            <div class="interact-btn disabled" title="小龙睡着了">🤗</div>
+            <div class="interact-btn disabled" title="小龙睡着了">🎾</div>
+            <div class="interact-btn disabled" title="小龙睡着了">🧮</div>
+          </div>
+          {% endif %}
+
+          <div class="pet-name-row" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+            <div class="pet-name" onclick="showRenameModal()" style="cursor:pointer;" title="点击改名">{{ pet.name }}{% if pet.status == 'sleeping' %} <span class="sleep-tag">💤睡觉中</span>{% endif %} ✏️</div>
+            <div class="skin-btn-kid" onclick="showSkinPanel()" title="换肤" style="cursor:pointer;font-size:18px;background:#f0f0f0;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">🎨</div>
+          </div>
+          <span class="stage-badge">{{ appearance.stage_name }}</span>
+          {% if appearance.stage < 4 %}
+          <div class="evolution-progress">
+            <div class="evolution-fill {{ 'near-max' if appearance.stage_progress > 85 }}" style="width:{{ appearance.stage_progress | int }}%"></div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 属性条 -->
+    <div class="attr-bar">
+      <div class="attr-item">
+        <div class="attr-label">⚡ 经验</div>
+        <div class="attr-val">{{ pet.exp }}</div>
+        <div class="attr-track"><div class="attr-fill fill-exp" style="width:{{ stage_progress }}%"></div></div>
+      </div>
+      <div class="attr-item">
+        <div class="attr-label">🔥 连续</div>
+        <div class="attr-val">{{ pet.streak }}天</div>
+        <div class="attr-track"><div class="attr-fill fill-streak" style="width:{{ [pet.streak * 3.3, 100] | min }}%"></div></div>
+      </div>
+      <div class="attr-item">
+        <div class="attr-label">🍖 饱腹</div>
+        <div class="attr-val">{{ pet.hunger }}%</div>
+        <div class="attr-track"><div class="attr-fill fill-hunger" style="width:{{ pet.hunger }}%"></div></div>
+      </div>
+      <div class="attr-item">
+        <div class="attr-label">💕 亲密</div>
+        <div class="attr-val">{{ dict(pet).get('bond', 50) }}</div>
+        <div class="attr-track"><div class="attr-fill fill-bond" style="width:{{ dict(pet).get('bond', 50) }}%"></div></div>
+      </div>
+      <div class="attr-item">
+        <div class="attr-coin">🪙 {{ dict(pet).get('coins', 0) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 主内容卡片 ===== -->
+  <div class="main-card">
+    {% if done_daily == total_daily and total_daily > 0 %}
+    <div class="all-done-banner"><span>🎉</span> 今天所有作业都完成了！超棒！</div>
+    {% endif %}
+
+    <!-- Tab -->
+    <div class="tab-nav">
+      <div class="tab-item active" id="tab-tasks" onclick="switchTab('tasks')">📝 作业</div>
+      <div class="tab-item" id="tab-shop" onclick="switchTab('shop')">🏪 商店</div>
+      <div class="tab-item" id="tab-ach" onclick="switchTab('ach')">🏆 成就</div>
+    </div>
+
+    <!-- 作业 Tab -->
+    <div id="pane-tasks">
+      <div class="action-area">
+        <div class="btn-row">
+          <button class="btn-complete {% if pet.status == 'sleeping' %}btn-sleeping-disabled{% endif %}" onclick="showTaskModal()" style="flex:1;" {% if pet.status == 'sleeping' %}title="💤 完成作业可唤醒小龙"{% endif %}>
+            ✅ 完成作业
+            {% if pet.status == 'sleeping' %}<span class="btn-sleep-hint">💤 小龙睡觉中</span>{% endif %}
+          </button>
+        </div>
+        <button class="btn-focus {% if pet.status == 'sleeping' %}btn-sleeping-disabled{% endif %}" onclick="showFocusSelect()" {% if pet.status == 'sleeping' %}disabled title="💤 小龙睡着了"{% endif %}>
+          🧘 专注打卡 ({{ focus_count_today }}/3)
+          {% if pet.status == 'sleeping' %} <span class="btn-sleep-hint">💤</span>{% endif %}
+        </button>
+        {% if focus_today > 0 %}
+        <div class="focus-info">今日已专注 {{ focus_today }} 分钟</div>
+        {% endif %}
+      </div>
+      <div class="task-section">
+        <div class="section-title">📚 日常作业</div>
+        {% for task in tasks %}
+        <div class="task-row {% if task.completed %}done{% endif %} {% if task.is_math %}is-math{% endif %}">
+          <div class="task-icon {% if task.subject == '语文' %}t-yuwen{% elif task.subject == '数学' %}t-shuxue{% elif task.subject == '英语' %}t-yingyu{% elif task.subject == '体育锻炼' %}t-tiyu{% else %}t-qita{% endif %}">
+            {% if task.subject == '语文' %}📝{% elif task.subject == '数学' %}🔢{% elif task.subject == '英语' %}📖{% elif task.subject == '课外阅读' %}📚{% elif task.subject == '体育锻炼' %}🏃{% else %}📚{% endif %}
+          </div>
+          <div class="task-body">
+            <div class="task-name">{{ task.subject }}{% if task.is_math %}<span class="math-badge">🌟双倍</span>{% endif %}</div>
+            <div class="task-meta {% if task.completed %}done-txt{% endif %}">
+              {% if task.completed %}✅ 已完成 +{{ task.exp }}经验 +{{ task.coins }}龙币
+              {% else %}+{{ task.exp }}经验 +{{ task.coins }}龙币{% if task.is_math %} · 宝箱！{% endif %}{% endif %}
+            </div>
+          </div>
+          <div class="task-check {% if task.completed %}done{% endif %}">
+            {% if task.completed %}✓{% else %}○{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+
+        {% if custom_tasks %}
+        <div class="section-title" style="margin-top:12px;">👨‍👩‍👧 爸爸妈妈布置的</div>
+        {% for task in custom_tasks %}
+        <div class="task-row {% if task.status == 'completed' %}done{% endif %} {% if task.status == 'expired' %}expired{% endif %}">
+          <div class="task-icon t-custom">📋</div>
+          <div class="task-body">
+            <div class="task-name">{{ task.subject }}
+              {% if task.status == 'expired' %}<span class="deadline-badge">已过期</span>{% endif %}
+            </div>
+            <div class="task-meta {% if task.status == 'completed' %}done-txt{% endif %}">
+              {% if task.status == 'completed' %}✅ 已完成 +{{ task.exp_reward }}经验 +{{ task.coins_reward }}龙币
+              {% elif task.status == 'expired' %}已过期
+              {% else %}+{{ task.exp_reward }}经验 +{{ task.coins_reward }}龙币
+                {% if task.deadline %} · 截止 {{ task.deadline[5:] }}{% endif %}
+              {% endif %}
+            </div>
+          </div>
+          {% if task.status == 'pending' %}
+          <div class="task-check pending clickable" onclick="completeCustomTask({{ task.id }})">○</div>
+          {% elif task.status == 'completed' %}
+          <div class="task-check done">✓</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% if role == 'kid' and kid_today_behavior %}
+        <div class="kid-behavior-section">
+          <div class="section-title" style="margin-top:12px;">📋 今日评价</div>
+          <div class="kid-bh-summary">
+            <div class="kid-bh-stat">
+              <div class="kid-bh-stat-num pos">+{{ kid_bh_positive }}</div>
+              <div class="kid-bh-stat-label">获得龙币</div>
+            </div>
+            <div class="kid-bh-stat">
+              <div class="kid-bh-stat-num neg">{{ kid_bh_negative }}</div>
+              <div class="kid-bh-stat-label">扣除龙币</div>
+            </div>
+          </div>
+          <div class="kid-bh-list">
+            {% for b in kid_today_behavior %}
+            <div class="bh-record">
+              <span class="bh-record-icon">{{ '✅' if b.coins > 0 else '❌' }}</span>
+              <span class="bh-record-name">{{ b.rule_name }}</span>
+              <span class="bh-record-coins {{ 'pos' if b.coins > 0 else 'neg' }}">{{ '+' if b.coins > 0 else '' }}{{ b.coins }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- 商店 Tab -->
+    <div id="pane-shop" style="display:none">
+      <div class="shop-section">
+        <!-- 龙币余额 -->
+        <div class="coin-balance-card">
+          <div class="coin-balance-label">我的龙币</div>
+          <div class="coin-balance-num" id="shopCoinBalance">🪙 {{ pet.get('coins', 0) }}</div>
+        </div>
+
+        <!-- 零花钱兑换 -->
+        {% if parent_settings.get('pocket_money_enabled', '1') == '1' %}
+        <div class="pocket-exchange">
+          <div class="pocket-header">
+            <span class="pocket-title">💰 兑换零花钱</span>
+            <span class="pocket-rate">汇率：{{ parent_settings.get('exchange_rate', '100') }}龙币 = 1元</span>
+          </div>
+          <div class="pocket-input-row">
+            <input type="number" class="pocket-input" id="pocketCoins" placeholder="输入龙币数" min="1">
+            <button class="pocket-btn" onclick="exchangePocketMoney()">兑换</button>
+          </div>
+          <div class="pocket-weekly">本周已兑换额度请查看钱包</div>
+        </div>
+        {% endif %}
+
+        <!-- 商品分类：小龙零食（购买即喂食） -->
+        <div class="shop-category {% if pet.status == 'sleeping' %}shop-sleeping{% endif %}">
+          <div class="shop-cat-title">🍖 小龙零食 <span style="font-size:11px;color:#aaa;font-weight:400;">（购买即喂食）</span>
+            {% if pet.status == 'sleeping' %}<span class="shop-sleep-tag">💤 小龙睡着了</span>{% endif %}
+          </div>
+          <div class="shop-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="shop-item {% if pet.status == 'sleeping' %}item-disabled{% endif %}" onclick="buyAndFeed('肉骨头','🍖',5)" {% if pet.status == 'sleeping' %}title="小龙睡着了，不能喂食哦～"{% endif %}>
+              <div class="shop-item-icon">🍖</div>
+              <div class="shop-item-name">肉骨头</div>
+              <div class="shop-item-price">🪙5</div>
+            </div>
+            <div class="shop-item {% if pet.status == 'sleeping' %}item-disabled{% endif %}" onclick="buyAndFeed('小鱼干','🐟',5)" {% if pet.status == 'sleeping' %}title="小龙睡着了，不能喂食哦～"{% endif %}>
+              <div class="shop-item-icon">🐟</div>
+              <div class="shop-item-name">小鱼干</div>
+              <div class="shop-item-price">🪙5</div>
+            </div>
+            <div class="shop-item {% if pet.status == 'sleeping' %}item-disabled{% endif %}" onclick="buyAndFeed('蛋糕','🎂',10)" {% if pet.status == 'sleeping' %}title="小龙睡着了，不能喂食哦～"{% endif %}>
+              <div class="shop-item-icon">🎂</div>
+              <div class="shop-item-name">蛋糕</div>
+              <div class="shop-item-price">🪙10</div>
+            </div>
+            <div class="shop-item {% if pet.status == 'sleeping' %}item-disabled{% endif %}" onclick="buyAndFeed('冰淇淋','🍦',8)" {% if pet.status == 'sleeping' %}title="小龙睡着了，不能喂食哦～"{% endif %}>
+              <div class="shop-item-icon">🍦</div>
+              <div class="shop-item-name">冰淇淋</div>
+              <div class="shop-item-price">🪙8</div>
+            </div>
+            <div class="shop-item {% if pet.status == 'sleeping' %}item-disabled{% endif %}" onclick="buyAndFeed('水果拼盘','🍇',6)" {% if pet.status == 'sleeping' %}title="小龙睡着了，不能喂食哦～"{% endif %}>
+              <div class="shop-item-icon">🍇</div>
+              <div class="shop-item-name">水果拼盘</div>
+              <div class="shop-item-price">🪙6</div>
+            </div>
+            <div class="shop-item {% if pet.status == 'sleeping' %}item-disabled{% endif %}" onclick="buyAndFeed('烤鸡腿','🍗',12)" {% if pet.status == 'sleeping' %}title="小龙睡着了，不能喂食哦～"{% endif %}>
+              <div class="shop-item-icon">🍗</div>
+              <div class="shop-item-name">烤鸡腿</div>
+              <div class="shop-item-price">🪙12</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;">
+          <div class="wallet-link" style="flex:1;" onclick="openWallet()">📊 钱包</div>
+          <div class="wallet-link" style="flex:1;" onclick="openWeeklyReport()">📈 周报</div>
+        </div>
+
+        <!-- 皮肤商店 -->
+        <div class="skin-shop-section" style="margin-top:12px;">
+          <div class="shop-cat-title">🎨 宠物皮肤 <span style="font-size:11px;color:#aaa;font-weight:400;">换上喜欢的外观</span></div>
+          <div class="skin-grid-shop" id="skinShopGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;">
+            <!-- JS 动态加载 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成就 Tab -->
+    <div id="pane-ach" style="display:none">
+      <div class="ach-section">
+        <div class="section-title" style="margin-top:10px;">🏆 成就徽章墙</div>
+        <div id="achGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px;">
+        {% for ach in achievements %}
+        <div class="ach-row {% if ach.unlocked %}unlocked{% endif %}" style="flex-direction:column; text-align:center; padding:12px 6px;">
+          <div class="ach-icon" style="margin-right:0; margin-bottom:4px; font-size:32px;">{{ ach.icon }}</div>
+          <div class="ach-name" style="font-size:12px;">{{ ach.name }}</div>
+          <div class="ach-desc" style="font-size:9px;">{{ ach.description }}</div>
+          <span class="ach-badge {% if ach.unlocked %}done{% else %}pending{% endif %}" style="margin-left:0; margin-top:4px; font-size:9px;">
+            {% if ach.unlocked %}✓{% else %}🔒{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 家长面板 ===== -->
+  {% if role == 'parent' %}
+  <div class="parent-panel show">
+
+    <!-- 鼓励消息 -->
+    <div class="parent-section">
+      <h5>💌 家长鼓励消息</h5>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="encourageInput" placeholder="给孩子写一句鼓励..."
+          style="flex:1; padding:10px 12px; border:2px solid #eee; border-radius:12px; font-size:14px; outline:none;">
+        <button onclick="sendEncourage()" style="padding:10px 16px; background:linear-gradient(135deg,#FD79A8,#e84393); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer;">发送</button>
+      </div>
+    </div>
+
+    <!-- 布置额外任务 -->
+    <div class="parent-section">
+      <h5>📋 布置额外任务</h5>
+      <!-- 切换：模板选择 / 手动输入 -->
+      <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <div class="cat-chip active" id="tabTemplate" onclick="switchTaskInput('template', this)" style="flex:1; text-align:center;">📋 预设模板</div>
+        <div class="cat-chip" id="tabManual" onclick="switchTaskInput('manual', this)" style="flex:1; text-align:center;">✏️ 手动输入</div>
+      </div>
+
+      <!-- 预设模板区 -->
+      <div id="templateInputArea">
+        <div class="template-cats">
+          <div class="cat-chip active" onclick="filterTemplates('all', this)">全部</div>
+          <div class="cat-chip" onclick="filterTemplates('math', this)">🔢数学</div>
+          <div class="cat-chip" onclick="filterTemplates('chinese', this)">📝语文</div>
+          <div class="cat-chip" onclick="filterTemplates('english', this)">📖英语</div>
+          <div class="cat-chip" onclick="filterTemplates('other', this)">📚其他</div>
+        </div>
+        <div class="template-grid" id="templateGrid">
+          <!-- JS 动态填充 -->
+        </div>
+      </div>
+
+      <!-- 手动输入区 -->
+      <div id="manualInputArea" style="display:none;">
+        <div style="margin-bottom:8px;">
+          <label style="font-size:13px; font-weight:600; color:#555; display:block; margin-bottom:4px;">任务名称</label>
+          <input type="text" id="manualTaskName" placeholder="输入任务名称，如：背古诗两首" maxlength="50"
+            style="width:100%; padding:10px 12px; border:2px solid #eee; border-radius:12px; font-size:14px; outline:none;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#555; display:block; margin-bottom:4px;">经验奖励</label>
+            <input type="number" id="manualExpReward" value="50" min="5" max="500" step="5"
+              style="width:100%; padding:8px 10px; border:2px solid #eee; border-radius:10px; font-size:14px; outline:none;">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#555; display:block; margin-bottom:4px;">龙币奖励</label>
+            <input type="number" id="manualCoinsReward" value="5" min="1" step="1"
+              style="width:100%; padding:8px 10px; border:2px solid #eee; border-radius:10px; font-size:14px; outline:none;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 截止时间（两种模式共享） -->
+      <div class="deadline-row">
+        <div class="deadline-chip active" onclick="selectDeadline('today', this)">今天</div>
+        <div class="deadline-chip" onclick="selectDeadline('tomorrow', this)">明天</div>
+        <div class="deadline-chip" onclick="selectDeadline('fri', this)">本周五</div>
+        <div class="deadline-chip" onclick="selectDeadline('next', this)">下周一</div>
+      </div>
+      <button class="parent-btn" onclick="createCustomTask()">✅ 布置任务</button>
+
+      <div class="parent-task-list" id="parentTaskList">
+        {% for t in parent_custom_tasks %}
+        <div class="parent-task-row" id="pt-{{ t.id }}">
+          <div class="parent-task-info">
+            <div class="parent-task-name">{{ t.subject }}</div>
+            <div class="parent-task-meta">
+              {% if t.status == 'completed' %}✅ 已完成
+              {% elif t.status == 'expired' %}⏰ 已过期
+              {% else %}+{{ t.exp_reward }}经验 +{{ t.coins_reward }}龙币 · 截止 {{ (t.deadline or '无')[5:] }}
+                {% if t.deadline %} ({{ t.deadline[5:] }}){% endif %}
+              {% endif %}
+            </div>
+          </div>
+          {% if t.status == 'pending' %}
+          <button class="parent-task-del" onclick="deleteCustomTask({{ t.id }})">✕</button>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 行为评价 -->
+    <div class="parent-section">
+      <h5>🎯 行为评价</h5>
+      <div class="behavior-cats">
+        <div class="bh-cat-chip active" onclick="filterBehavior('all', this)">全部</div>
+        <div class="bh-cat-chip" onclick="filterBehavior('study', this)">📚学习</div>
+        <div class="bh-cat-chip" onclick="filterBehavior('behavior', this)">🎯行为</div>
+        <div class="bh-cat-chip" onclick="filterBehavior('health', this)">💪健康</div>
+        <div class="bh-cat-chip" onclick="filterBehavior('other', this)">📝其他</div>
+      </div>
+      <div class="bh-rules" id="bhRulesGrid">
+        {% for r in behavior_rules %}
+        <div class="bh-rule-btn {{ 'positive' if r.coins > 0 else 'negative' }}" data-cat="{{ r.category }}" onclick="evaluateBehavior({{ r.id }}, this)">
+          {{ r.icon or '⭐' }} {{ r.name }} ({{ '+' if r.coins > 0 else '' }}{{ r.coins }})
+        </div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:12px; padding:12px; background:#f8f9ff; border-radius:14px; border:1px solid #ececff;">
+        <div style="font-size:13px; font-weight:700; color:#555; margin-bottom:8px;">✏️ 自定义评价</div>
+        <input type="text" id="customBehaviorName" placeholder="例如：主动整理书桌" maxlength="30"
+          style="width:100%; padding:9px 10px; border:2px solid #eee; border-radius:10px; font-size:13px; outline:none; margin-bottom:8px;">
+        <div style="display:grid; grid-template-columns:1fr 96px; gap:8px; margin-bottom:8px;">
+          <select id="customBehaviorType" style="padding:8px 10px; border:2px solid #eee; border-radius:10px; font-size:13px; outline:none;">
+            <option value="positive">奖励行为</option>
+            <option value="improve">需要改进</option>
+          </select>
+          <input type="number" id="customBehaviorCoins" value="5" min="-20" max="20" step="1"
+            style="padding:8px 10px; border:2px solid #eee; border-radius:10px; font-size:13px; outline:none;">
+        </div>
+        <button class="parent-btn" onclick="submitCustomBehavior()">✅ 提交自定义评价</button>
+      </div>
+      {% if today_behavior %}
+      <div class="bh-today-list">
+        <div class="section-title" style="margin-top:12px;">今日评价记录</div>
+        {% for b in today_behavior %}
+        <div class="bh-record">
+          <span class="bh-record-icon">{{ '✅' if b.coins > 0 else '❌' }}</span>
+          <span class="bh-record-name">{{ b.rule_name }}</span>
+          <span class="bh-record-coins {{ 'pos' if b.coins > 0 else 'neg' }}">{{ '+' if b.coins > 0 else '' }}{{ b.coins }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 零花钱审批 -->
+    {% if pending_pocket %}
+    <div class="parent-section">
+      <h5>💰 零花钱审批</h5>
+      <div class="pocket-approve-list">
+        {% for p in pending_pocket %}
+        <div class="pocket-approve-row" id="pa-{{ p.id }}">
+          <div class="pocket-approve-info">
+            <div class="pocket-approve-amount">🪙{{ p.coins_spent }} → ¥{{ p.amount_yuan }}</div>
+            <div class="pocket-approve-detail">申请时间：{{ p.requested_at[:16] if p.requested_at else '-' }}</div>
+          </div>
+          <div class="pocket-approve-btns">
+            <button class="approve-btn approve-yes" onclick="approvePocket({{ p.id }})">✓ 批准</button>
+            <button class="approve-btn approve-no" onclick="rejectPocket({{ p.id }})">✕ 拒绝</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 家长设置 -->
+    <div class="parent-section">
+      <h5>⚙️ 设置</h5>
+      <div class="settings-row">
+        <span class="settings-label">汇率（X龙币=1元）</span>
+        <input type="number" class="settings-input" id="settingRate" value="{{ parent_settings.get('exchange_rate', '100') }}" min="1">
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">每周兑换上限（龙币）</span>
+        <input type="number" class="settings-input" id="settingLimit" value="{{ parent_settings.get('weekly_coin_limit', '200') }}" min="0">
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">开启零花钱兑换</span>
+        <label style="cursor:pointer;">
+          <input type="checkbox" id="settingPocketEnabled" {% if parent_settings.get('pocket_money_enabled', '1') == '1' %}checked{% endif %}>
+        </label>
+      </div>
+            <div class="settings-row">
+        <span class="settings-label">⏰ 放学时间</span>
+        <input type="time" class="settings-input" id="settingSchoolEnd" value="{{ parent_settings.get('school_end_time', '16:00') }}" style="width:100px;">
+      </div>
+      <button class="parent-btn" style="margin-top:10px;" onclick="saveSettings()">💾 保存设置</button>
+      <div style="margin-top:14px; padding-top:12px; border-top:2px dashed #f0f0f0;">
+        <div style="font-size:13px; font-weight:600; color:#888; margin-bottom:8px;">🔐 修改家长密码</div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="password" id="oldPwdInput" placeholder="原密码" style="flex:1;padding:8px 10px;border:2px solid #eee;border-radius:10px;font-size:13px;outline:none;">
+          <input type="password" id="newPwdInput" placeholder="新密码(4位+)" style="flex:1;padding:8px 10px;border:2px solid #eee;border-radius:10px;font-size:13px;outline:none;">
+          <button onclick="changePassword()" style="padding:8px 14px;background:#EF5350;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">修改</button>
+        </div>
+      </div>
+          <div style="margin-top:16px; padding-top:14px; border-top:2px dashed #ffcdd2;">
+        <div style="font-size:13px; font-weight:600; color:#e53935; margin-bottom:8px;">⚠️ 危险操作</div>
+        <button onclick="resetAllData()" style="width:100%;padding:10px;background:#EF5350;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;">🗑️ 重置所有游戏数据</button>
+      </div>
+    </div>
+
+  </div>
+  {% endif %}
+
+  <!-- 完成任务弹窗 -->
+  <div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header" style="background: linear-gradient(135deg, #6C5CE7, #A29BFE); color: white; border: none;">
+          <h5 class="modal-title fw-bold">📝 完成作业</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" style="padding: 18px;">
+          <div>
+            <label class="form-label fw-bold">选择科目</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="subjectGrid">
+              <div class="subject-btn active" data-val="语文" onclick="selectSubject(this)">📝 语文</div>
+              <div class="subject-btn math-btn" data-val="数学" onclick="selectSubject(this)">🔢 数学 ⭐</div>
+              <div class="subject-btn" data-val="英语" onclick="selectSubject(this)">📖 英语</div>
+              <div class="subject-btn" data-val="课外阅读" onclick="selectSubject(this)">📚 课外阅读</div>
+              <div class="subject-btn" data-val="体育锻炼" onclick="selectSubject(this)">🏃 体育锻炼</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="border: none; padding: 0 18px 18px;">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 12px;">取消</button>
+          <button type="button" onclick="completeTask()"
+            style="padding: 12px 28px; background: linear-gradient(135deg,#00B894,#55EFC4); color:#fff; border:none; border-radius:12px; font-weight:700; font-size:15px; cursor:pointer;">
+            ✅ 确认完成！
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 角色切换 -->
+  <div class="role-switch">
+    {% if role == 'kid' %}
+    <span>👧 孩子模式</span>
+    <a href="javascript:void(0)" class="role-btn" onclick="showParentVerify()">切换家长模式 👨‍👩‍👧</a>
+    {% else %}
+    <span>👨‍👩‍👧 家长模式</span>
+    <a href="/?role=kid" class="role-btn">切换孩子模式 👧</a>
+    {% endif %}
+  </div>
+
+</div><!-- end page-wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ===== v3.2 改名 =====
+function showRenameModal() {
+  if (petStatus === 'sleeping') { showToast('小龙睡着了，等它醒了再改名吧'); return; }
+  document.getElementById('renameInput').value = '';
+  document.getElementById('renameModal').classList.add('show');
+  setTimeout(() => document.getElementById('renameInput').focus(), 300);
+}
+function closeRenameModal() { document.getElementById('renameModal').classList.remove('show'); }
+async function confirmRename() {
+  const name = document.getElementById('renameInput').value.trim();
+  if (!name || name.length > 20) { showToast('名字长度需在1-20个字符之间'); return; }
+  const formData = new FormData();
+  formData.append('name', name);
+  try {
+    const resp = await fetch('/api/pet/rename', { method: 'POST', body: formData });
+    const result = await resp.json();
+    if (result.success) { showToast(result.message); closeRenameModal(); setTimeout(() => location.reload(), 1200); }
+    else { showToast(result.message); }
+  } catch(e) { showToast('改名失败'); }
+}
+
+// ===== v3.2 算术题游戏 =====
+let mathQuizCorrectAnswer = 0;
+let mathQuizAutoCloseTimer = null;
+
+async function startMathQuiz() {
+  // 清除上一个自动关闭定时器，防止"再来一题"后意外关闭
+  if (mathQuizAutoCloseTimer) { clearTimeout(mathQuizAutoCloseTimer); mathQuizAutoCloseTimer = null; }
+  if (petStatus === 'sleeping') { showToast('小龙睡着了，等它醒了再玩吧'); return; }
+  try {
+    const resp = await fetch('/api/pet/math-quiz', { method: 'POST' });
+    const data = await resp.json();
+    if (!data.success) { showToast(data.message); return; }
+    mathQuizCorrectAnswer = data.correct_answer;
+    document.getElementById('mathQuizIcon').textContent = '🧮';
+    document.getElementById('mathQuizTitle').textContent = '算术题挑战';
+    document.getElementById('mathQuizSubtitle').textContent = '看谁算得又快又准！';
+    document.getElementById('mathQuizQuestion').textContent = data.question;
+    document.getElementById('mathQuizResult').innerHTML = '';
+    document.getElementById('mathQuizRetry').style.display = 'none';
+    document.getElementById('mathQuizActions').style.display = 'block';
+    const optDiv = document.getElementById('mathQuizOptions');
+    optDiv.innerHTML = '';
+    data.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.textContent = opt;
+      btn.onclick = () => answerMathQuiz(opt);
+      btn.style.cssText = 'padding:14px;font-size:20px;font-weight:700;border:2px solid #6C5CE7;border-radius:14px;background:#fff;color:#2D3436;cursor:pointer;transition:all 0.15s;';
+      btn.onmouseenter = function() { this.style.background='#F3E5F5'; };
+      btn.onmouseleave = function() { this.style.background='#fff'; };
+      optDiv.appendChild(btn);
+    });
+    document.getElementById('mathQuizModal').classList.add('show');
+  } catch(e) { showToast('加载题目失败'); }
+}
+
+async function answerMathQuiz(answer) {
+  const correct = answer === mathQuizCorrectAnswer;
+  const formData = new FormData();
+  formData.append('answer', answer);
+  formData.append('correct_answer', mathQuizCorrectAnswer);
+  try {
+    const resp = await fetch('/api/pet/math-quiz/answer', { method: 'POST', body: formData });
+    const result = await resp.json();
+    const resultArea = document.getElementById('mathQuizResult');
+    document.getElementById('mathQuizOptions').innerHTML = '';
+    document.getElementById('mathQuizActions').style.display = 'none';
+    document.getElementById('mathQuizRetry').style.display = 'block';
+    if (result.success && correct) {
+      document.getElementById('mathQuizIcon').textContent = '🎉';
+      document.getElementById('mathQuizTitle').textContent = '答对啦！+10龙币！';
+      resultArea.innerHTML = '<div style="font-size:22px;font-weight:800;color:#00B894;">✅ 完全正确！太厉害了！</div>';
+      showBubble(result.bubble);
+      spawnParticles('play');
+      updateCoinDisplay(result.new_coins);
+      updateAttrBar('mood', result.mood);
+      updateAttrBar('bond', result.bond);
+      mathQuizAutoCloseTimer = setTimeout(() => closeMathQuiz(), 2500);
+    } else {
+      document.getElementById('mathQuizIcon').textContent = '🤔';
+      document.getElementById('mathQuizTitle').textContent = '再试试吧！';
+      resultArea.innerHTML = '<div style="font-size:16px;font-weight:700;color:#E53935;">不对哦～正确答案是 <span style="color:#00B894;font-size:20px;">' + mathQuizCorrectAnswer + '</span></div><div style="font-size:13px;color:#888;margin-top:4px;">' + result.bubble + '</div>';
+    }
+  } catch(e) { showToast('提交失败'); }
+}
+
+function closeMathQuiz() {
+  document.getElementById('mathQuizModal').classList.remove('show');
+  setTimeout(() => location.reload(), 300);
+}
+
+// ===== v3.2 皮肤 =====
+async function showSkinPanel() {
+  try {
+    const resp = await fetch('/api/pet/skins');
+    const data = await resp.json();
+    let html = '<div style="padding:16px;"><div style="font-size:18px;font-weight:700;margin-bottom:12px;">🎨 宠物换肤</div><div class="skin-grid">';
+    data.skins.forEach(skin => {
+      const isCurrent = skin.current;
+      html += '<div class="skin-card ' + (isCurrent ? 'current' : '') + '" onclick="selectSkin(\'' + skin.id + '\')">';
+      html += '<img src="' + skin.image + '" alt="' + skin.name + '" style="width:72px;height:72px;object-fit:contain;margin-bottom:4px;">';
+      html += '<div style="font-size:12px;font-weight:600;">' + skin.name + '</div>';
+      html += '<div style="font-size:9px;color:#aaa;">' + skin.desc + '</div>';
+      html += '<div style="font-size:9px;margin-top:4px;">' + (isCurrent ? '✅ 使用中' : (skin.unlocked ? '点击切换' : '🔒 未解锁')) + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+    const existing = document.getElementById('customModalOverlay');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div'); overlay.id = 'customModalOverlay';
+    overlay.className = 'wallet-overlay show';
+    overlay.innerHTML = '<div class="wallet-popup" style="max-width:420px;"><div class="wallet-header"><div class="wallet-title">🎨 宠物换肤</div><button class="wallet-close" onclick="this.closest(\'.wallet-overlay\').remove()">×</button></div>' + html + '</div>';
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  } catch(e) { showToast('加载皮肤失败'); }
+}
+async function selectSkin(skinId) {
+  const formData = new FormData();
+  formData.append('skin_id', skinId);
+  try {
+    const resp = await fetch('/api/pet/skin/select', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message);
+    if (result.success) setTimeout(() => location.reload(), 1200);
+  } catch(e) { showToast('切换失败'); }
+}
+
+async function unlockSkin(skinId) {
+  const formData = new FormData();
+  formData.append('skin_id', skinId);
+  try {
+    const resp = await fetch('/api/pet/skin/unlock', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message);
+    if (result.success) {
+      updateCoinDisplay(result.new_coins);
+      setTimeout(() => location.reload(), 1200);
+    }
+  } catch(e) { showToast('解锁失败'); }
+}
+
+// 加载皮肤商店
+async function loadSkinShop() {
+  try {
+    const resp = await fetch('/api/pet/skins');
+    const data = await resp.json();
+    const grid = document.getElementById('skinShopGrid');
+    if (!grid) return;
+    let html = '';
+    data.skins.forEach(skin => {
+      html += '<div class="skin-card' + (skin.current ? ' current' : '') + '" style="padding:10px 6px;">';
+      html += '<img src="' + skin.image + '" alt="' + skin.name + '" style="width:64px;height:64px;object-fit:contain;margin-bottom:2px;">';
+      html += '<div style="font-size:10px;font-weight:600;color:#2D3436;">' + skin.name + '</div>';
+      html += '<div style="font-size:9px;color:#aaa;margin-bottom:6px;">' + skin.desc + '</div>';
+      if (skin.unlocked) {
+        if (skin.current) {
+          html += '<div style="font-size:10px;color:#6C5CE7;font-weight:700;">✅ 使用中</div>';
+        } else {
+          html += '<button onclick="selectSkin(\'' + skin.id + '\')" style="padding:4px 10px;border:none;border-radius:8px;background:#6C5CE7;color:#fff;font-size:10px;font-weight:600;cursor:pointer;">使用</button>';
+        }
+      } else {
+        html += '<button onclick="unlockSkin(\'' + skin.id + '\')" style="padding:4px 8px;border:none;border-radius:8px;background:#FF9500;color:#fff;font-size:10px;font-weight:600;cursor:pointer;">🔑 购买 ' + (skin.price || 50) + '</button>';
+      }
+      html += '</div>';
+    });
+    grid.innerHTML = html;
+  } catch(e) { console.error('加载皮肤失败:', e); }
+}
+
+// ===== v3.2 扩展心情显示 =====
+const _origUpdateMood = window.updateMoodDisplay || function(){};
+updateMoodDisplay = async function() {
+  try {
+    const resp = await fetch('/api/pet/mood');
+    const data = await resp.json();
+    if (data.error) return;
+    const avatar = document.getElementById('petAvatar');
+    const moodBubble = document.getElementById('moodBubble');
+    if (!avatar || !moodBubble) return;
+    avatar.classList.remove('mood-sad', 'mood-happy', 'mood-hiding', 'mood-begging', 'mood-angry', 'mood-wronged', 'mood-proud');
+    const map = { 'angry': 'mood-angry', 'wronged': 'mood-wronged', 'proud': 'mood-proud', 'begging': 'mood-begging', 'pouting': 'mood-sad', 'hiding': 'mood-hiding', 'happy': 'mood-happy' };
+    if (map[data.bubble_type]) avatar.classList.add(map[data.bubble_type]);
+    if (data.bubble && data.bubble_type !== 'normal') { moodBubble.textContent = data.bubble; moodBubble.style.display = 'block'; }
+    else { moodBubble.style.display = 'none'; }
+    updateAttrBar('hunger', data.hunger);
+    updateAttrBar('bond', data.bond);
+  } catch(e) { console.error('心情轮询失败:', e); }
+};
+
+</script>
+<script>
+// ===== 全局状态 =====
+let taskModal;
+let selectedSubject = '语文';
+const currentRole = '{{ role }}';
+const petStatus = '{{ pet.status }}';
+const petCoins = {{ pet.get('coins', 0) }};
+const focusCountToday = {{ focus_count_today }};
+const encourageData = {{ ('{"message":"' + encourage.message + '"}') | safe if encourage else 'null' }};
+const behaviorRules = {{ behavior_rules | tojson }};
+const customTaskTemplates = {{ custom_task_templates | tojson }};
+const currentStage = {{ appearance.stage }};
+const dragonImages = [
+  '/static/dragon-references/Stage%200%20龙蛋.jpeg',
+  '/static/dragon-references/Stage%201%20幼龙.jpeg',
+  '/static/dragon-references/Stage%202%20少年龙.jpeg',
+  '/static/dragon-references/Stage%203%20青年龙.jpeg',
+  '/static/dragon-references/Stage%204%20神龙.jpeg',
+];
+const focusDragonImg = dragonImages[Math.min(currentStage, 4)];
+
+// 专注打卡状态
+let focusState = 'idle'; // idle / selecting / timing / done
+let focusInterval = null;
+let focusRemaining = 0;
+let focusDuration = 0;
+
+document.addEventListener('DOMContentLoaded', function() {
+  taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
+  startCountdown();
+  // 家长端：初始化模板列表
+  if (currentRole === 'parent') {
+    renderTemplates('all');
+  }
+});
+
+// ===== 倒计时 =====
+function startCountdown() {
+  function update() {
+    const now = new Date();
+    const target = new Date();
+    target.setHours(21, 0, 0, 0);
+    const bar = document.getElementById('countdownBar');
+    const val = document.getElementById('countdownVal');
+    const lbl = document.getElementById('countdownLabel');
+    if (now >= target) {
+      bar.classList.add('expired');
+      lbl.textContent = '今天黄金时段已过，明天继续加油！';
+      val.textContent = '';
+    } else {
+      const diff = target - now;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      lbl.textContent = '🌟 黄金时段剩余：';
+      val.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+// ===== Tab 切换 =====
+function switchTab(tab) {
+  ['tasks','shop','ach'].forEach(t => {
+    document.getElementById('pane-'+t).style.display = t===tab ? 'block' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
+  });
+  if (tab === 'shop') { setTimeout(loadSkinShop, 100); }
+}
+
+// ===== 科目选择 =====
+function selectSubject(el) {
+  const grid = el.closest('#subjectGrid, #extraSubjectGroup') || el.parentElement;
+  grid.querySelectorAll('.subject-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedSubject = el.dataset.val;
+}
+
+function showTaskModal() {
+  if (petStatus === 'sleeping') {
+    showConfirm('💤 小龙睡着了', '小龙正在睡觉哦，但你可以完成作业来唤醒它！要继续吗？', () => {
+      taskModal.show();
+    });
+    return;
+  }
+  taskModal.show();
+}
+
+// ===== 完成任务 =====
+async function completeTask() {
+  const subject = selectedSubject;
+  const formData = new FormData();
+  formData.append('task_type', 'daily');
+  formData.append('subject', subject);
+  formData.append('completed_by', currentRole);
+  try {
+    const resp = await fetch('/api/task/complete', { method: 'POST', body: formData });
+    const result = await resp.json();
+    taskModal.hide();
+    if (result.success) {
+      let celebrateMsg = '';
+      if (result.early_bird_bonus > 0) {
+        celebrateMsg = '🐦 早鸟奖励！放学1小时内完成，额外+' + result.early_bird_bonus + '龙币！';
+        showToast(celebrateMsg);
+      }
+      celebrate(result.is_math, subject, result.exp);
+      // 唤醒动画：如果小龙之前在睡觉
+      if (result.woke_up) {
+        const sleepOverlay = document.getElementById('sleepOverlay');
+        if (sleepOverlay) sleepOverlay.remove();
+        setTimeout(() => {
+          showToast('✨ 小龙被你的努力唤醒啦！');
+          playDragonAnim('satisfied');
+        }, 800);
+      }
+      if (result.stage_up) {
+        setTimeout(() => showEvolution(result.new_stage), 1500);
+      }
+      if (result.treasure) {
+        setTimeout(() => showTreasure(result.treasure), result.stage_up ? 4000 : 2500);
+      }
+      const delay = result.treasure ? 6500 : (result.stage_up ? 4000 : 3000);
+      setTimeout(() => location.reload(), delay);
+    } else { showToast(result.message); }
+  } catch(e) { showToast('提交失败，请重试'); }
+}
+
+// ===== 完成家长额外任务 =====
+async function completeCustomTask(taskId) {
+  try {
+    const resp = await fetch(`/api/custom-tasks/${taskId}/complete`, { method: 'POST' });
+    const result = await resp.json();
+    if (result.success) {
+      showToast(`✅ ${result.message}`);
+      updateCoinDisplay(result.new_coins);
+      if (result.stage_up) {
+        setTimeout(() => showEvolution(result.new_stage), 1200);
+      }
+      setTimeout(() => location.reload(), result.stage_up ? 4000 : 2000);
+    } else { showToast(result.message); }
+  } catch(e) {
+    console.error('completeCustomTask error:', e);
+    showToast('操作失败，请刷新页面重试');
+  }
+}
+
+// ===== 庆祝动画 =====
+function celebrate(isMath, subject, exp) {
+  const layer = document.getElementById('celebrate-layer');
+  const textEl = document.getElementById('celebrate-text');
+  const praises = ['太棒了！', '真厉害！', '超级棒！', '你真牛！', '加油！'];
+  const mathPraises = ['数学高手！', '算术满分！', '数学勇士！', '超级棒！'];
+  const praise = isMath ? mathPraises[Math.floor(Math.random()*mathPraises.length)] : praises[Math.floor(Math.random()*praises.length)];
+  textEl.innerHTML = `${praise}<br><span style="font-size:26px">+${exp}经验 +龙币 ${isMath?'🌟🌟':'⭐'}</span>`;
+  textEl.style.display = 'block';
+  layer.style.display = 'block';
+  const colors = isMath ? ['#FFD700','#FF9500','#FFEAA7','#FFA500','#fff'] : ['#6C5CE7','#FD79A8','#00B894','#FDCB6E','#A29BFE','#55EFC4','#fff'];
+  const count = isMath ? 70 : 50;
+  for (let i=0; i<count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 6+Math.random()*10;
+    p.style.cssText = `left:${Math.random()*100}vw;top:-20px;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${1.5+Math.random()*1.5}s;animation-delay:${Math.random()*0.5}s;border-radius:${Math.random()>0.5?'50%':'4px'};`;
+    layer.appendChild(p);
+  }
+  setTimeout(() => { layer.style.display='none'; textEl.style.display='none'; layer.innerHTML=''; }, 3000);
+}
+
+// ===== 进化动画 =====
+function showEvolution(newStage) {
+  const stageNames = ['龙蛋', '幼龙', '少年龙', '青年龙', '神龙'];
+  const overlay = document.getElementById('evolutionOverlay');
+  document.getElementById('evoStageName').textContent = `🎉 ${stageNames[newStage]}形态！`;
+  document.getElementById('evoDetail').textContent = `小龙变得更加强大了！`;
+  overlay.classList.add('show');
+  setTimeout(() => overlay.classList.remove('show'), 3500);
+}
+
+// ===== 宝箱 =====
+function showTreasure(reward) {
+  const typeMap = { title: '称号', item: '装扮道具', exp_card: '经验加成卡' };
+  document.getElementById('rewardIcon').textContent = reward.icon;
+  document.getElementById('rewardName').textContent = reward.name;
+  document.getElementById('rewardType').textContent = typeMap[reward.type] || reward.type;
+  document.getElementById('treasureModal').classList.add('show');
+}
+function closeTreasure() { document.getElementById('treasureModal').classList.remove('show'); }
+
+// ===== 喂食（已移到商店直接购买喂食，保留兼容） =====
+async function feedPet() {
+  showToast('🍖 去商店给小龙买好吃的吧～');
+  switchTab('shop');
+}
+
+// ===== 商店购买+直接喂食 =====
+let isBuying = false;
+async function buyAndFeed(foodName, foodEmoji, price) {
+  if (petStatus === 'sleeping') { showToast('😴 嘘...小龙睡觉中～'); return; }
+  if (isBuying) return; // 防止重复点击
+  
+  showConfirm('购买零食', `花费 ${price} 龙币给小龙买${foodEmoji}${foodName}？`, async () => {
+    isBuying = true;
+    try {
+      const formData = new FormData();
+      formData.append('food_name', foodName);
+      formData.append('food_emoji', foodEmoji);
+      formData.append('price', price);
+      const resp = await fetch('/api/shop/buy-feed', { method: 'POST', body: formData });
+      const result = await resp.json();
+      
+      if (result.success) {
+        // 立即切换到作业Tab让用户看到龙的动画
+        switchTab('tasks');
+        
+        // 滚动到宠物区域
+        const petCard = document.querySelector('.pet-card');
+        if (petCard) petCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // 延迟一点等滚动完成，然后播放动画
+        setTimeout(() => {
+          // 食物飞入动画
+          showFoodFlyAnim(foodEmoji);
+          // 龙吃食物动画
+          playDragonAnim('feed');
+          // 显示语音气泡
+          const feedBubbles = [`好吃！${foodEmoji}`, '谢谢投喂～', '好好吃呀！', '还想吃！', '最棒了～'];
+          showBubble(feedBubbles[Math.floor(Math.random() * feedBubbles.length)]);
+          // 喂食粒子
+          const feedParticles = ['✨', '💫', '⭐', '🌟'];
+          const avatar = document.getElementById('petAvatar');
+          if (avatar) {
+            for (let i = 0; i < 5; i++) {
+              const p = document.createElement('div');
+              p.className = 'interact-particle';
+              p.textContent = feedParticles[Math.floor(Math.random() * feedParticles.length)];
+              p.style.left = (10 + Math.random() * 80) + '%';
+              p.style.top = (-5 - Math.random() * 20) + 'px';
+              p.style.animationDelay = (Math.random() * 0.3) + 's';
+              p.style.fontSize = (14 + Math.random() * 10) + 'px';
+              avatar.appendChild(p);
+              setTimeout(() => p.remove(), 1600);
+            }
+          }
+          // 延迟显示满足动画
+          setTimeout(() => playDragonAnim('satisfied'), 800);
+        }, 400);
+        
+        // 实时刷新龙币、饱腹度和心情显示
+        updateCoinDisplay(result.new_coins);
+        if (result.hunger !== undefined) updateAttrBar('hunger', result.hunger);
+        if (result.mood !== undefined) updateAttrBar('mood', result.mood);
+        showToast(`给小龙买了${foodEmoji}${foodName}！-${price}龙币`);
+      } else {
+        showToast(result.message);
+      }
+    } catch(e) {
+      showToast('网络错误，请重试');
+      console.error('buyAndFeed error:', e);
+    } finally {
+      isBuying = false;
+    }
+  });
+}
+
+function showFoodFlyAnim(emoji) {
+  const avatar = document.getElementById('petAvatar');
+  if (!avatar) return;
+  const rect = avatar.getBoundingClientRect();
+  const food = document.createElement('div');
+  food.className = 'food-fly';
+  food.textContent = emoji;
+  food.style.left = (rect.left + rect.width / 2 - 20) + 'px';
+  food.style.top = (rect.top + rect.height / 2 - 20) + 'px';
+  document.body.appendChild(food);
+  setTimeout(() => food.remove(), 1200);
+}
+
+function playDragonAnim(type) {
+  const center = document.querySelector('.pet-center');
+  if (!center) return;
+  const classMap = {
+    'pat': 'dragon-pat',
+    'tickle': 'dragon-tickle',
+    'play': 'dragon-play',
+    'feed': 'dragon-feed',
+    'satisfied': 'dragon-satisfied',
+  };
+  const cls = classMap[type];
+  if (!cls) return;
+  center.classList.add(cls);
+  const duration = type === 'feed' ? 800 : (type === 'satisfied' ? 1200 : 600);
+  setTimeout(() => center.classList.remove(cls), duration);
+}
+
+function updateCoinDisplay(newCoins) {
+  const balanceEl = document.getElementById('shopCoinBalance');
+  if (balanceEl) balanceEl.textContent = '🪙 ' + newCoins;
+  const coinAttr = document.querySelector('.attr-coin');
+  if (coinAttr) coinAttr.textContent = '🪙 ' + newCoins;
+}
+
+// ===== 宠物互动（瑞星小狮子风格动画） =====
+const interactCooldowns = { pat: 0, tickle: 0, play: 0 };
+async function doInteract(type) {
+  const now = Date.now();
+  if (now - (interactCooldowns[type]||0) < 2000) return;
+  interactCooldowns[type] = now;
+
+  try {
+    const formData = new FormData();
+    formData.append('interaction_type', type);
+    const resp = await fetch('/api/pet/interact', { method: 'POST', body: formData });
+    const result = await resp.json();
+    if (result.success) {
+      // 播放龙的动作动画
+      playDragonAnim(type);
+      // 显示语音气泡
+      showBubble(result.bubble);
+      // 产生粒子效果
+      spawnParticles(type);
+      // 实时刷新亲密度和心情显示
+      updateAttrBar('bond', result.bond);
+      if (result.mood !== undefined) updateAttrBar('mood', result.mood);
+      // 互动结束后播放满足动画
+      setTimeout(() => playDragonAnim('satisfied'), 600);
+    }
+  } catch(e) {}
+}
+
+function showBubble(text) {
+  // 移除旧气泡
+  const old = document.querySelector('.speech-bubble');
+  if (old) old.remove();
+  const avatar = document.getElementById('petAvatar');
+  const bubble = document.createElement('div');
+  bubble.className = 'speech-bubble';
+  bubble.textContent = text;
+  avatar.appendChild(bubble);
+  setTimeout(() => bubble.remove(), 2800);
+}
+
+function spawnParticles(type) {
+  const avatar = document.getElementById('petAvatar');
+  const particles = { 
+    pat: ['💕','❤️','💖','💗'], 
+    tickle: ['😆','😂','✨','💫','⭐'], 
+    play: ['⭐','🌟','✨','💫','🎉'] 
+  };
+  const emojis = particles[type] || ['✨'];
+  for (let i=0; i<6; i++) {
+    const p = document.createElement('div');
+    p.className = 'interact-particle';
+    p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    // 随机分布更广
+    p.style.left = (10+Math.random()*80) + '%';
+    p.style.top = (-5-Math.random()*20) + 'px';
+    p.style.animationDelay = (Math.random()*0.4) + 's';
+    p.style.fontSize = (14+Math.random()*10) + 'px';
+    avatar.appendChild(p);
+    setTimeout(() => p.remove(), 1600);
+  }
+}
+
+// ===== 专注打卡 =====
+function showFocusSelect() {
+  if (petStatus === 'sleeping') { showToast('😴 小龙睡着了，先完成作业唤醒它吧～'); return; }
+  if (focusCountToday >= 3) { showToast('今天已经专注3次啦，明天继续！'); return; }
+  focusState = 'selecting';
+  const overlay = document.getElementById('focusOverlay');
+  const content = document.getElementById('focusContent');
+  content.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <img src="${focusDragonImg}" alt="小龙" style="width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2));animation:focus-dragon-idle 4s ease-in-out infinite;">
+    </div>
+    <div class="focus-title">🧘 专注打卡</div>
+    <div class="focus-subtitle">选择专注时长，小龙陪你一起专注！</div>
+    <div class="focus-duration-select">
+      <div class="focus-dur-btn selected" onclick="selectFocusDur(10, this)">10分钟<br><small>+15龙币</small></div>
+      <div class="focus-dur-btn" onclick="selectFocusDur(20, this)">20分钟<br><small>+30龙币</small></div>
+      <div class="focus-dur-btn" onclick="selectFocusDur(30, this)">30分钟<br><small>+50龙币</small></div>
+    </div>
+    <button class="focus-start-btn" onclick="startFocus()">🚀 开始专注</button>
+    <br>
+    <button class="focus-cancel-btn" onclick="closeFocus()">取消</button>
+  `;
+  overlay.classList.add('show');
+}
+
+function selectFocusDur(mins, el) {
+  focusDuration = mins;
+  document.querySelectorAll('.focus-dur-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function startFocus() {
+  if (!focusDuration) focusDuration = 10;
+  focusRemaining = focusDuration * 60;
+  focusState = 'timing';
+
+  const content = document.getElementById('focusContent');
+  const circumference = 2 * Math.PI * 85;
+  content.innerHTML = `
+    <div style="margin-bottom:8px;">
+      <img src="/static/dragon-references/专注陪读.jpeg" alt="小龙陪读" id="focusDragonImg" style="width:60px;height:60px;object-fit:contain;border-radius:12px;opacity:0.85;">
+    </div>
+    <div class="focus-title">专注中...</div>
+    <div class="focus-subtitle">小龙安静地陪着你 💤</div>
+    <div class="focus-timer-ring">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <circle class="focus-ring-bg" cx="100" cy="100" r="85"/>
+        <circle class="focus-ring-fg" cx="100" cy="100" r="85"
+          id="focusRingFg"
+          stroke-dasharray="${circumference}"
+          stroke-dashoffset="0"
+        />
+      </svg>
+      <div class="focus-ring-center">
+        <div class="focus-time" id="focusTime">${formatTime(focusRemaining)}</div>
+        <div class="focus-label">剩余时间</div>
+      </div>
+    </div>
+    <button class="focus-cancel-btn" onclick="cancelFocus()">⚠️ 放弃专注</button>
+  `;
+
+  // 翻页隐藏时暂停
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  focusInterval = setInterval(() => {
+    if (document.hidden) return;
+    focusRemaining--;
+    const el = document.getElementById('focusTime');
+    if (el) el.textContent = formatTime(focusRemaining);
+
+    // 更新环形进度
+    const progress = (focusDuration * 60 - focusRemaining) / (focusDuration * 60);
+    const fg = document.getElementById('focusRingFg');
+    if (fg) fg.setAttribute('stroke-dashoffset', (circumference * (1 - progress)).toString());
+
+    // 小龙陪读：倒计时后半段微微闪一下表示快结束了
+    const dragonImg = document.getElementById('focusDragonImg');
+    if (dragonImg) {
+      const pct = focusRemaining / (focusDuration * 60);
+      if (pct <= 0.2) {
+        dragonImg.style.opacity = '1';
+        dragonImg.style.transform = 'scale(1.05)';
+      } else {
+        dragonImg.style.opacity = '0.85';
+        dragonImg.style.transform = 'scale(1)';
+      }
+    }
+
+    if (focusRemaining <= 0) {
+      clearInterval(focusInterval);
+      focusComplete();
+    }
+  }, 1000);
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function handleVisibilityChange() {
+  // 简单方案：页面隐藏时不做处理，回来后继续
+}
+
+function cancelFocus() {
+  showConfirm('放弃专注', '确定要放弃吗？放弃后不会获得龙币哦～', () => {
+    closeFocus();
+  });
+}
+
+async function focusComplete() {
+  focusState = 'done';
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  const content = document.getElementById('focusContent');
+  const coins = {10:15, 20:30, 30:50}[focusDuration] || 15;
+  content.innerHTML = `
+    <div style="margin-bottom:8px;">
+      <img src="${focusDragonImg}" alt="小龙开心" style="width:90px;height:90px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(255,215,0,0.4));animation:focus-dragon-idle 2s ease-in-out infinite;">
+    </div>
+    <div class="focus-title" style="font-size:24px;">专注完成！</div>
+    <div style="font-size:18px; margin:12px 0; color:#FFD700;">🪙 +{{ coins }} 龙币</div>
+    <div class="focus-subtitle">小龙很开心你这么专注！</div>
+    <button class="focus-start-btn" onclick="closeFocusAndReload()" style="margin-top:16px;">👍 太棒了！</button>
+  `;
+
+  // 后端记录
+  try {
+    const formData = new FormData();
+    formData.append('duration_minutes', focusDuration);
+    const resp = await fetch('/api/focus/complete', { method: 'POST', body: formData });
+    const result = await resp.json();
+    if (result.success) {
+      // 更新龙币显示
+      updateCoinDisplay(result.new_balance);
+    } else {
+      showToast(result.message);
+    }
+  } catch(e) {
+    console.error('focusComplete error:', e);
+    showToast('网络错误，龙币未记录，请刷新页面');
+  }
+}
+
+function closeFocus() {
+  if (focusInterval) clearInterval(focusInterval);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  focusState = 'idle';
+  document.getElementById('focusOverlay').classList.remove('show');
+}
+
+function closeFocusAndReload() {
+  closeFocus();
+  location.reload();
+}
+
+// ===== 零花钱兑换 =====
+async function exchangePocketMoney() {
+  const input = document.getElementById('pocketCoins');
+  const coins = parseInt(input.value);
+  if (!coins || coins <= 0) { showToast('请输入龙币数量'); return; }
+  try {
+    const formData = new FormData();
+    formData.append('coins_amount', coins);
+    const resp = await fetch('/api/coins/exchange-pocket-money', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message);
+    if (result.success) setTimeout(() => location.reload(), 2000);
+  } catch(e) { showToast('操作失败'); }
+}
+
+// ===== 鼓励消息 =====
+function showEncourage(e) {
+  if (e) e.stopPropagation();
+  if (!encourageData) return;
+  document.getElementById('encourageMsg').textContent = encourageData.message;
+  document.getElementById('encourageOverlay').classList.add('show');
+}
+function closeEncourage() { document.getElementById('encourageOverlay').classList.remove('show'); }
+
+async function sendEncourage() {
+  const input = document.getElementById('encourageInput');
+  const msg = input.value.trim();
+  if (!msg) { showToast('请输入鼓励内容～'); return; }
+  const formData = new FormData();
+  formData.append('message', msg);
+  try {
+    const resp = await fetch('/api/encourage', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message || '发送成功！');
+    input.value = '';
+    setTimeout(() => location.reload(), 1200);
+  } catch(e) { showToast('发送失败'); }
+}
+
+// ===== 家长：额外任务模板 =====
+function renderTemplates(cat) {
+  const grid = document.getElementById('templateGrid');
+  const templates = cat === 'all' ? customTaskTemplates : customTaskTemplates.filter(t => t.category === cat);
+  grid.innerHTML = templates.map((t, i) => `
+    <div class="template-btn" data-idx="${customTaskTemplates.indexOf(t)}" onclick="selectTemplate(this, ${customTaskTemplates.indexOf(t)})">
+      <div class="t-name">${t.name}</div>
+      <div class="t-info">+${t.exp}经验 +${t.coins}龙币</div>
+    </div>
+  `).join('');
+  if (templates.length === 0) grid.innerHTML = '<div style="grid-column:span 2;text-align:center;color:#aaa;padding:12px;">暂无该类任务</div>';
+}
+
+let selectedTemplate = null;
+let selectedDeadline = 'today';
+let taskInputMode = 'template'; // 'template' or 'manual'
+
+function switchTaskInput(mode, el) {
+  taskInputMode = mode;
+  // 切换 tab 样式
+  document.getElementById('tabTemplate').classList.toggle('active', mode === 'template');
+  document.getElementById('tabManual').classList.toggle('active', mode === 'manual');
+  // 切换区域显示
+  document.getElementById('templateInputArea').style.display = mode === 'template' ? '' : 'none';
+  document.getElementById('manualInputArea').style.display = mode === 'manual' ? '' : 'none';
+  selectedTemplate = null;
+}
+
+function filterTemplates(cat, el) {
+  document.querySelectorAll('.template-cats .cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedTemplate = null;
+  renderTemplates(cat);
+}
+
+function selectTemplate(el, idx) {
+  document.querySelectorAll('.template-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  const templates = customTaskTemplates;
+  selectedTemplate = templates[idx];
+}
+
+function selectDeadline(deadline, el) {
+  document.querySelectorAll('.deadline-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedDeadline = deadline;
+}
+
+async function createCustomTask() {
+  // 获取截止时间
+  const today = new Date();
+  let deadline = '';
+  if (selectedDeadline === 'today') deadline = today.toISOString().slice(0,10);
+  else if (selectedDeadline === 'tomorrow') { today.setDate(today.getDate()+1); deadline = today.toISOString().slice(0,10); }
+  else if (selectedDeadline === 'fri') { const d = today.getDate() + (5 - today.getDay() + 7) % 7; today.setDate(d); deadline = today.toISOString().slice(0,10); }
+  else if (selectedDeadline === 'next') { const d = today.getDate() + (1 - today.getDay() + 7) % 7; today.setDate(d); deadline = today.toISOString().slice(0,10); }
+
+  if (taskInputMode === 'template') {
+    // 预设模板模式
+    if (!selectedTemplate) { showToast('请先选择一个任务模板'); return; }
+    try {
+      const formData = new FormData();
+      formData.append('subject', selectedTemplate.name);
+      formData.append('category', selectedTemplate.category);
+      formData.append('exp_reward', selectedTemplate.exp);
+      formData.append('coins_reward', selectedTemplate.coins);
+      formData.append('deadline', deadline);
+      const resp = await fetch('/api/custom-tasks/create', { method: 'POST', body: formData });
+      const result = await resp.json();
+      showToast(result.message);
+      if (result.success) setTimeout(() => location.reload(), 1200);
+    } catch(e) { showToast('操作失败'); }
+  } else {
+    // 手动输入模式
+    const name = document.getElementById('manualTaskName').value.trim();
+    const expReward = parseInt(document.getElementById('manualExpReward').value) || 50;
+    const coinsReward = parseInt(document.getElementById('manualCoinsReward').value) || 5;
+    if (!name) { showToast('请输入任务名称'); return; }
+    if (expReward < 5 || expReward > 500) { showToast('经验奖励在 5-500 之间'); return; }
+    if (coinsReward < 1) { showToast('龙币奖励至少为 1'); return; }
+    try {
+      const formData = new FormData();
+      formData.append('subject', name);
+      formData.append('category', 'custom');
+      formData.append('exp_reward', expReward);
+      formData.append('coins_reward', coinsReward);
+      formData.append('deadline', deadline);
+      const resp = await fetch('/api/custom-tasks/create', { method: 'POST', body: formData });
+      const result = await resp.json();
+      showToast(result.message);
+      if (result.success) {
+        document.getElementById('manualTaskName').value = '';
+        setTimeout(() => location.reload(), 1200);
+      }
+    } catch(e) { showToast('操作失败'); }
+  }
+}
+
+async function deleteCustomTask(taskId) {
+  showConfirm('删除任务', '确定要删除这个任务吗？', async () => {
+    try {
+      const resp = await fetch(`/api/custom-tasks/${taskId}`, { method: 'DELETE' });
+      const result = await resp.json();
+      showToast(result.message);
+      const row = document.getElementById('pt-'+taskId);
+      if (row) row.remove();
+    } catch(e) { showToast('操作失败'); }
+  });
+}
+
+// ===== 家长：行为评价 =====
+function filterBehavior(cat, el) {
+  document.querySelectorAll('.bh-cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.bh-rule-btn').forEach(btn => {
+    btn.style.display = (cat === 'all' || btn.dataset.cat === cat) ? '' : 'none';
+  });
+}
+
+async function evaluateBehavior(ruleId, el) {
+  try {
+    const formData = new FormData();
+    formData.append('rule_id', ruleId);
+    const resp = await fetch('/api/behavior/evaluate', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message);
+    // 按钮闪烁反馈
+    el.style.transform = 'scale(1.2)';
+    setTimeout(() => { el.style.transform = ''; }, 300);
+    if (result.success) setTimeout(() => location.reload(), 1500);
+  } catch(e) { showToast('操作失败'); }
+}
+
+async function submitCustomBehavior() {
+  const name = document.getElementById('customBehaviorName').value.trim();
+  const behaviorType = document.getElementById('customBehaviorType').value;
+  const coins = parseInt(document.getElementById('customBehaviorCoins').value, 10);
+  if (!name) { showToast('请输入评价内容'); return; }
+  if (Number.isNaN(coins) || coins < -20 || coins > 20) { showToast('龙币变化必须在 -20 到 +20 之间'); return; }
+  try {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('behavior_type', behaviorType);
+    formData.append('coins', coins);
+    const resp = await fetch('/api/behavior/evaluate/custom', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message || (result.success ? '评价已记录' : '评价失败'));
+    if (result.success) setTimeout(() => location.reload(), 1200);
+  } catch(e) { showToast('操作失败'); }
+}
+
+// ===== 家长：零花钱审批 =====
+async function approvePocket(id) {
+  try {
+    const resp = await fetch(`/api/pocket-money/${id}/approve`, { method: 'POST' });
+    const result = await resp.json();
+    showToast(result.message);
+    const row = document.getElementById('pa-'+id);
+    if (row) row.remove();
+    if (result.success) setTimeout(() => location.reload(), 1500);
+  } catch(e) { showToast('操作失败'); }
+}
+
+async function rejectPocket(id) {
+  try {
+    const resp = await fetch(`/api/pocket-money/${id}/reject`, { method: 'POST' });
+    const result = await resp.json();
+    showToast(result.message);
+    const row = document.getElementById('pa-'+id);
+    if (row) row.remove();
+    if (result.success) setTimeout(() => location.reload(), 1500);
+  } catch(e) { showToast('操作失败'); }
+}
+
+// ===== 家长：设置 =====
+async function saveSettings() {
+  try {
+    const formData = new FormData();
+    formData.append('exchange_rate', document.getElementById('settingRate').value);
+    formData.append('weekly_coin_limit', document.getElementById('settingLimit').value);
+    formData.append('pocket_money_enabled', document.getElementById('settingPocketEnabled').checked ? '1' : '0');
+    const schoolEnd = document.getElementById('settingSchoolEnd');
+    if (schoolEnd) formData.append('school_end_time', schoolEnd.value);
+    const resp = await fetch('/api/parent/settings', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message || '设置已保存');
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) { showToast('保存失败'); }
+}
+
+// ===== 家长密码验证 =====
+function showParentVerify() {
+  document.getElementById('parentPasswordInput').value = '';
+  document.getElementById('parentVerifyError').style.display = 'none';
+  document.getElementById('parentVerifyOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('parentPasswordInput').focus(), 300);
+}
+
+function closeParentVerify() {
+  document.getElementById('parentVerifyOverlay').classList.remove('show');
+}
+
+async function verifyParentPassword() {
+  const pwd = document.getElementById('parentPasswordInput').value;
+  if (!pwd) { document.getElementById('parentVerifyError').textContent = '请输入密码'; document.getElementById('parentVerifyError').style.display = 'block'; return; }
+  
+  try {
+    const formData = new FormData();
+    formData.append('password', pwd);
+    const resp = await fetch('/api/parent/verify', { method: 'POST', body: formData });
+    const result = await resp.json();
+    
+    if (result.success) {
+      closeParentVerify();
+      window.location.href = '/?role=parent';
+    } else {
+      document.getElementById('parentVerifyError').textContent = result.message || '密码错误';
+      document.getElementById('parentVerifyError').style.display = 'block';
+      document.getElementById('parentPasswordInput').value = '';
+      document.getElementById('parentPasswordInput').focus();
+      // 错误抖动
+      const input = document.getElementById('parentPasswordInput');
+      input.style.animation = 'none';
+      input.offsetHeight; // reflow
+      input.style.animation = 'pat-shake 0.5s ease';
+    }
+  } catch(e) { showToast('验证失败'); }
+}
+
+async function changePassword() {
+  const oldPwd = document.getElementById('oldPwdInput').value;
+  const newPwd = document.getElementById('newPwdInput').value;
+  if (!oldPwd || !newPwd) { showToast('请输入原密码和新密码'); return; }
+  if (newPwd.length < 4) { showToast('新密码至少4位'); return; }
+  
+  try {
+    const formData = new FormData();
+    formData.append('old_password', oldPwd);
+    formData.append('new_password', newPwd);
+    const resp = await fetch('/api/parent/change-password', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message || (result.success ? '密码已修改' : '修改失败'));
+    if (result.success) {
+      document.getElementById('oldPwdInput').value = '';
+      document.getElementById('newPwdInput').value = '';
+    }
+  } catch(e) { showToast('修改失败'); }
+}
+
+async function resetAllData() {
+  const pwd = prompt('请输入家长密码确认重置：');
+  if (!pwd) return;
+  if (!confirm('⚠️ 确定要重置所有游戏数据吗？\n\n宠物、任务、龙币、成就等所有数据将被清空，此操作不可撤销！')) return;
+
+  try {
+    const formData = new FormData();
+    formData.append('password', pwd);
+    const resp = await fetch('/api/parent/reset-data', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message || (result.success ? '数据已重置' : '重置失败'));
+    if (result.success) {
+      setTimeout(() => location.reload(), 1500);
+    }
+  } catch(e) { showToast('重置失败：' + e.message); }
+}
+
+// ===== 确认弹窗 =====
+let confirmCallback = null;
+function showConfirm(title, msg, onConfirm) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  confirmCallback = onConfirm;
+  document.getElementById('confirmYesBtn').onclick = () => {
+    const cb = confirmCallback;  // 先保存引用
+    closeConfirm();
+    if (cb) cb();  // 用保存的引用调用，避免 closeConfirm 清空后丢失
+  };
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  confirmCallback = null;
+}
+
+// ===== Toast =====
+function showToast(msg) {
+  const wrap = document.getElementById('toast-wrap');
+  const el = document.createElement('div');
+  el.className = 'toast-msg';
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+// ===== 钱包 =====
+async function openWallet() {
+  document.getElementById('walletOverlay').classList.add('show');
+  document.getElementById('walletTxnList').innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">加载中...</div>';
+  try {
+    const resp = await fetch('/api/wallet/detail');
+    const data = await resp.json();
+    
+    // 余额
+    document.getElementById('walletBalanceNum').textContent = '🪙 ' + data.balance;
+    
+    // 零花钱统计
+    document.getElementById('walletWeeklyPocket').textContent = '¥' + data.weekly_pocket;
+    document.getElementById('walletMonthlyPocket').textContent = '¥' + data.monthly_pocket;
+    document.getElementById('walletTotalPocket').textContent = '¥' + data.total_pocket;
+    
+    // 交易记录
+    const list = document.getElementById('walletTxnList');
+    if (!data.transactions || data.transactions.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:#aaa;padding:20px;">暂无交易记录</div>';
+      return;
+    }
+    
+    const sourceIcons = {
+      'homework': '📝', 'custom_task': '📋', 'behavior': '🎯', 'focus': '🧘',
+      'shop_feed': '🍖', 'shop': '🛍️', 'pocket_money': '💰', 'pocket_money_pending': '💰',
+      'pocket_money_refund': '💸', 'encourage': '💌',
+    };
+    
+    list.innerHTML = data.transactions.map(t => {
+      const isEarn = t.type === 'earn';
+      const icon = sourceIcons[t.source] || '🪙';
+      const desc = t.description || t.source;
+      const time = t.created_at ? t.created_at.slice(5, 16).replace('T', ' ') : '';
+      const amount = isEarn ? ('+' + t.amount) : ('-' + Math.abs(t.amount));
+      return `<div class="wallet-txn-item">
+        <div class="wallet-txn-icon">${icon}</div>
+        <div class="wallet-txn-info">
+          <div class="wallet-txn-desc">${desc}</div>
+          <div class="wallet-txn-time">${time}</div>
+        </div>
+        <div class="wallet-txn-amount ${isEarn ? 'pos' : 'neg'}">${amount}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('walletTxnList').innerHTML = '<div style="text-align:center;color:#E53935;padding:20px;">加载失败</div>';
+  }
+}
+function closeWallet() { document.getElementById('walletOverlay').classList.remove('show'); }
+
+// ===== 学习周报 =====
+let weeklyData = null;
+let currentChartType = 'tasks';
+
+async function openWeeklyReport() {
+  document.getElementById('weeklyReportOverlay').classList.add('show');
+  document.getElementById('weeklySummary').innerHTML = '<div style="text-align:center;color:#aaa;padding:12px;width:100%;">加载中...</div>';
+  try {
+    const resp = await fetch('/api/weekly-report');
+    weeklyData = await resp.json();
+    
+    // 汇总卡片
+    const s = weeklyData.week_summary;
+    document.getElementById('weeklySummary').innerHTML = `
+      <div class="weekly-summary-item"><div class="weekly-summary-num">${s.tasks}</div><div class="weekly-summary-label">📝 作业完成</div></div>
+      <div class="weekly-summary-item"><div class="weekly-summary-num">${s.coins}</div><div class="weekly-summary-label">🪙 获取龙币</div></div>
+      <div class="weekly-summary-item"><div class="weekly-summary-num">${s.focus_mins}</div><div class="weekly-summary-label">🧘 专注(分钟)</div></div>
+      <div class="weekly-summary-item"><div class="weekly-summary-num">${s.custom_tasks}</div><div class="weekly-summary-label">👨‍👩‍👧 额外任务</div></div>
+    `;
+    
+    drawWeeklyChart('tasks');
+  } catch(e) {
+    document.getElementById('weeklySummary').innerHTML = '<div style="text-align:center;color:#E53935;padding:12px;">加载失败</div>';
+  }
+}
+function closeWeeklyReport() { document.getElementById('weeklyReportOverlay').classList.remove('show'); }
+
+function switchChart(type, el) {
+  currentChartType = type;
+  document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  drawWeeklyChart(type);
+}
+
+function drawWeeklyChart(type) {
+  if (!weeklyData) return;
+  const canvas = document.getElementById('weeklyChartCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  // 高清适配
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  
+  const W = rect.width;
+  const H = rect.height;
+  const data = weeklyData.daily_data;
+  
+  ctx.clearRect(0, 0, W, H);
+  
+  const config = {
+    'tasks': { field: 'tasks_done', color: '#6C5CE7', label: '作业完成数', unit: '项', max: 6 },
+    'coins': { field: 'coins_earned', color: '#FFD700', label: '获取龙币', unit: '币', max: null },
+    'focus': { field: 'focus_mins', color: '#00B894', label: '专注时长', unit: '分钟', max: null },
+  }[type];
+  
+  const values = data.map(d => d[config.field]);
+  const maxVal = config.max || Math.max(1, ...values) * 1.2;
+  
+  const padding = { top: 20, right: 16, bottom: 36, left: 36 };
+  const chartW = W - padding.left - padding.right;
+  const chartH = H - padding.top - padding.bottom;
+  const barW = chartW / data.length;
+  const gap = barW * 0.3;
+  
+  // Y轴网格线
+  ctx.strokeStyle = '#f0f0f0';
+  ctx.lineWidth = 1;
+  ctx.font = '10px -apple-system, sans-serif';
+  ctx.fillStyle = '#bbb';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = padding.top + chartH - (chartH * i / 4);
+    const val = Math.round(maxVal * i / 4);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(W - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(val.toString(), padding.left - 6, y + 3);
+  }
+  
+  // 柱状图
+  data.forEach((d, i) => {
+    const val = d[config.field];
+    const barH = Math.max(2, (val / maxVal) * chartH);
+    const x = padding.left + i * barW + gap / 2;
+    const y = padding.top + chartH - barH;
+    const w = barW - gap;
+    
+    // 渐变
+    const grad = ctx.createLinearGradient(x, y, x, y + barH);
+    grad.addColorStop(0, config.color);
+    grad.addColorStop(1, config.color + '66');
+    
+    // 圆角矩形
+    const r = Math.min(6, w / 2);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + barH);
+    ctx.lineTo(x, y + barH);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.fill();
+    
+    // 数值标签
+    if (val > 0) {
+      ctx.fillStyle = config.color;
+      ctx.font = 'bold 11px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(val.toString(), x + w / 2, y - 6);
+    }
+    
+    // X轴日期标签
+    ctx.fillStyle = d.is_today ? config.color : '#aaa';
+    ctx.font = (d.is_today ? 'bold ' : '') + '10px -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.label, x + w / 2, H - padding.bottom + 18);
+    if (d.is_today) {
+      ctx.fillText('今天', x + w / 2, H - padding.bottom + 30);
+    }
+  });
+}
+
+// ===== v3.1: 心情轮询 & 活动横幅 & 随机惊喜 =====
+
+const isWeekend = {{ 'true' if is_weekend else 'false' }};
+const todaySurprise = {{ 'true' if today_surprise else 'false' }};
+const mathChallengeDone = {{ math_challenge_done if math_challenge_done else 0 }};
+let moodPollingTimer = null;
+
+// 页面加载后启动 v3.1 功能
+document.addEventListener('DOMContentLoaded', function() {
+  showEventBanner();
+  startMoodPolling();
+  checkSurpriseOnLoad();
+  // 页面加载时执行定时检查（每日衰减、睡眠唤醒等）
+  runScheduler();
+});
+
+// 活动横幅展示
+function showEventBanner() {
+  const banner = document.getElementById('eventBanner');
+  if (!banner) return;
+  let html = '';
+  
+  if (isWeekend) {
+    html += '<div class="event-banner weekend"><span class="event-icon">🎉</span>周末双倍龙币！所有奖励翻倍！</div>';
+  }
+  
+  // 数学挑战赛
+  const challengeText = mathChallengeDone ? '⚔️ 数学挑战赛·今日首题奖励已领取！' : '⚔️ 今天第一道数学额外+20龙币！';
+  const challengeClass = mathChallengeDone ? '' : 'event-banner';
+  const challengeStyle = mathChallengeDone ? 'display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,0.15);border-radius:20px;padding:5px 14px;margin-bottom:8px;font-size:12px;color:rgba(255,255,255,0.7);font-weight:600;' : '';
+  html += `<div class="${challengeClass}" style="${challengeStyle}">${challengeText}</div>`;
+  
+  if (html) {
+    banner.innerHTML = html;
+    banner.style.display = 'block';
+  }
+}
+
+// 定时调度：触发后端每日衰减、睡眠管理等维护任务
+async function runScheduler() {
+  try {
+    await fetch('/api/scheduler/run', { method: 'POST' });
+  } catch(e) {
+    console.error('定时调度失败:', e);
+  }
+}
+
+// 心情轮询：每60秒获取一次宠物心情，更新气泡和动画
+function startMoodPolling() {
+  updateMoodDisplay();  // 立即执行一次
+  moodPollingTimer = setInterval(updateMoodDisplay, 60000);
+  // 同时每60秒触发一次后端定时检查（每日衰减等），后端有 last_decay_date 守卫，一天只会执行一次
+  setInterval(runScheduler, 60000);
+}
+
+async function updateMoodDisplay() {
+  try {
+    const resp = await fetch('/api/pet/mood');
+    const data = await resp.json();
+    if (data.error) return;
+    
+    const avatar = document.getElementById('petAvatar');
+    const moodBubble = document.getElementById('moodBubble');
+    if (!avatar || !moodBubble) return;
+    
+    // 移除旧的心情 class
+    avatar.classList.remove('mood-sad', 'mood-happy', 'mood-hiding', 'mood-begging');
+    
+    // 根据 bubble_type 设置动画状态
+    if (data.bubble_type === 'begging' || data.bubble_type === 'pouting') {
+      avatar.classList.add('mood-sad');
+    } else if (data.bubble_type === 'hiding') {
+      avatar.classList.add('mood-hiding');
+    } else if (data.bubble_type === 'happy') {
+      avatar.classList.add('mood-happy');
+    } else if (data.bubble_type === 'begging') {
+      avatar.classList.add('mood-begging');
+    }
+    
+    // 更新持久化心情气泡
+    if (data.bubble && data.bubble_type !== 'normal') {
+      moodBubble.textContent = data.bubble;
+      moodBubble.style.display = 'block';
+    } else {
+      moodBubble.style.display = 'none';
+    }
+    
+    // 更新属性条（如果有变动）
+    updateAttrBar('hunger', data.hunger);
+    updateAttrBar('bond', data.bond);
+    
+  } catch(e) {
+    console.error('心情轮询失败:', e);
+  }
+}
+
+function updateAttrBar(type, value) {
+  // 更新对应的属性条文本和进度
+  const items = document.querySelectorAll('.attr-item');
+  items.forEach(item => {
+    const label = item.querySelector('.attr-label');
+    if (label) {
+      if ((type === 'hunger' && label.textContent.includes('饱腹')) ||
+          (type === 'mood' && label.textContent.includes('心情')) ||
+          (type === 'bond' && label.textContent.includes('亲密'))) {
+        const val = item.querySelector('.attr-val');
+        const fill = item.querySelector('.attr-fill');
+        if (val) val.textContent = (type === 'hunger' || type === 'mood') ? value + '%' : value;
+        if (fill) fill.style.width = value + '%';
+      }
+    }
+  });
+}
+
+// 页面加载时检查随机惊喜
+async function checkSurpriseOnLoad() {
+  if (todaySurprise) return; // 今天已经获得过
+  
+  try {
+    const resp = await fetch('/api/random-surprise');
+    const data = await resp.json();
+    if (data.surprise) {
+      showSurprisePopup(data.surprise);
+    }
+  } catch(e) {
+    console.error('惊喜检查失败:', e);
+  }
+}
+
+// 惊喜弹窗
+function showSurprisePopup(surprise) {
+  const icons = {
+    'coins': '🪙', 'exp': '📖', 'bond': '💕', 'title': '🎀', 'mood': '🎭'
+  };
+  const icon = icons[surprise.type] || '🎁';
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'surprise-overlay';
+  overlay.innerHTML = `
+    <div class="surprise-card">
+      <div class="surprise-icon">${icon}</div>
+      <div class="surprise-title">🎁 小龙的惊喜！</div>
+      <div class="surprise-desc">${surprise.desc}</div>
+      <button class="surprise-btn" onclick="this.closest('.surprise-overlay').remove()">太开心啦！😊</button>
+    </div>
+  `;
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+  
+  // 产生粒子庆祝效果
+  for (let i = 0; i < 12; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'interact-particle';
+      p.textContent = ['✨','💫','⭐','🎉','🎊','💕'][Math.floor(Math.random()*6)];
+      p.style.left = (20+Math.random()*60) + '%';
+      p.style.top = (10+Math.random()*60) + '%';
+      p.style.fontSize = (18+Math.random()*14) + 'px';
+      p.style.animationDuration = '2s';
+      overlay.querySelector('.surprise-card').appendChild(p);
+      setTimeout(() => p.remove(), 2200);
+    }, i * 100);
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,65 @@
+
+============================================================
+  阶段 0：环境准备
+============================================================
+  [PASS] 服务器在线，/api/pet 返回 200
+  [PASS] 数据库已初始化，pet 记录存在
+  [PASS] 饱腹度有效 (=100)
+  [PASS] 心情有效 (=100)
+  [PASS] 亲密度有效 (=58)
+  [FAIL] 初始经验 = 0 (实际=220)
+  [FAIL] 初始龙币 = 0 (实际=45)
+  [PASS] 初始状态有效 (实际=happy)
+
+============================================================
+  阶段 1：进化系统
+============================================================
+  [PASS] 进化阈值数组正确
+  [PASS] EXP=0 → Stage 0 (期望 Stage 0)
+  [PASS] EXP=799 → Stage 0 (期望 Stage 0)
+  [PASS] EXP=800 → Stage 1 (期望 Stage 1)
+  [PASS] EXP=1999 → Stage 1 (期望 Stage 1)
+  [PASS] EXP=2000 → Stage 2 (期望 Stage 2)
+  [PASS] EXP=3999 → Stage 2 (期望 Stage 2)
+  [PASS] EXP=4000 → Stage 3 (期望 Stage 3)
+  [PASS] EXP=7999 → Stage 3 (期望 Stage 3)
+  [PASS] EXP=8000 → Stage 4 (期望 Stage 4)
+  [PASS] EXP=9999 → Stage 4 (期望 Stage 4)
+  [PASS] /api/pet 返回 200
+  [PASS] /api/pet 返回 pet 字段
+  [PASS] /api/pet 返回 appearance 字段
+  [FAIL] API 返回经验=0
+  [PASS] 初始阶段为 0（龙蛋）(实际=0)
+  [PASS] API 返回有效饱腹 (=100)
+  [PASS] API 返回有效心情 (=100)
+  [PASS] API 返回有效状态 (=happy)
+
+============================================================
+  阶段 2：互动系统
+============================================================
+  [PASS] 摸头互动返回 200
+  [PASS] 摸头互动 success=True
+  [PASS] 摸头亲密度+2: 58→60
+  [FAIL] 摸头心情+1: 100→100
+  [PASS] 挠痒互动返回 200
+  [PASS] 挠痒亲密度+3: 60→63
+  [FAIL] 挠痒心情+2: 100→100
+  [PASS] 逗玩互动返回 200
+  [PASS] 逗玩亲密度+2: 63→65
+  [FAIL] 总亲密度 = 50+2+3+2 = 65
+  [PASS] 睡觉时互动返回 success=False (实际=False)
+
+============================================================
+  阶段 3：任务系统
+============================================================
+  [PASS] /api/tasks 返回 200
+  [PASS] 返回 tasks 字段
+  [PASS] 返回 done_daily 字段
+  [PASS] 返回 total_daily 字段
+  [PASS] 完成语文任务返回 200
+  [FAIL] 语文任务 success=True
+Traceback (most recent call last):
+  File "D:\AIProject\workbuddy\homework-pet\app\test_comprehensive.py", line 183, in <module>
+    check(data['exp'] == 50, f"语文经验+50 (实际={data['exp']})")
+          ~~~~^^^^^^^
+KeyError: 'exp'
