@@ -9,10 +9,10 @@ build/
 .venv/
 venv/
 
-# Database (production data - NOT committed)
-*.db
-*.db-shm
-*.db-wal
+# Database (tracked for Railway deployment)
+# *.db
+# *.db-shm
+# *.db-wal
 backups/
 
 # Logs
