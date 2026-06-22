@@ -9,7 +9,7 @@ build/
 .venv/
 venv/
 
-# Database
+# Database (production data - NOT committed)
 *.db
 *.db-shm
 *.db-wal
