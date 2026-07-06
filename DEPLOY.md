@@ -1,4 +1,95 @@
-# 🚀 作业小龙 — Windows 云服务器部署指南
+# 🚀 作业小龙 — 部署指南
+
+当前生产部署方式为 **Railway**（连 GitHub 自动构建，2026-06-22 上线），下方 Windows 云服务器方案为备选/自托管路径。
+
+## 部署方式选择
+
+| 方式 | 适用场景 | 启动命令 | 持久化 |
+|------|----------|----------|--------|
+| **Railway（推荐，当前生产）** | 公网访问、免运维 | `python app/main.py`（见 `Procfile` / `railway.json`） | SQLite 文件随仓库提交，Volume 持久化 |
+| Windows 云服务器 | 自托管、内网部署 | `python app/main.py` 或 NSSM 服务 | 本地磁盘 |
+| 本地开发 | 调试 | `python app/run_local.py`（端口 5001） | 本地磁盘 |
+
+---
+
+## 方式 A：Railway 部署（当前生产环境）
+
+### A.1 前置条件
+
+- GitHub 仓库：`github279355466/homework-pet`
+- Railway 账号（用 GitHub 登录）
+- 仓库已包含以下部署配置：
+  - `Procfile` — 启动命令
+  - `railway.json` — Railway 构建配置（NIXPACKS builder，健康检查 `/`）
+  - `requirements.txt` — Python 依赖（每行一个包，必须是真实换行符）
+  - `app/homework_pet.db` — 已提交的 SQLite 数据库（含生产数据）
+
+### A.2 配置文件
+
+**`Procfile`**
+```
+web: python app/main.py
+```
+
+**`railway.json`**
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": { "builder": "NIXPACKS" },
+  "deploy": {
+    "startCommand": "python app/main.py",
+    "healthcheckPath": "/",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
+```
+
+### A.3 部署步骤
+
+1. 打开 https://railway.app → 用 GitHub 登录
+2. **New Project** → **Deploy from GitHub repo** → 选 `github279355466/homework-pet`
+3. Railway 自动检测 Python 项目，按 `requirements.txt` 安装依赖
+4. 按 `Procfile` 启动 `python app/main.py`
+5. `main.py` 末尾读取 `PORT` 环境变量：`uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))`
+6. 部署完成后获得 `https://<service-name>.up.railway.app` 域名
+
+### A.4 访问地址
+
+- **孩子端**：`https://<service-name>.up.railway.app/?role=kid`
+- **家长端**：`https://<service-name>.up.railway.app/?role=parent`
+
+### A.5 自定义域名
+
+Railway 不支持改 `*.up.railway.app` 的前缀。要自定义域名：
+1. Railway Dashboard → 项目 → **Settings** → **Domains**
+2. 输入你的域名，按提示配 DNS CNAME 记录指向 Railway 提供的地址
+
+### A.6 数据库持久化
+
+- 当前方案：`app/homework_pet.db` 跟随 git 提交，部署后从仓库拉取
+- 升级方案（推荐）：在 Railway 添加 Volume 挂载到 `/app` 路径，避免重新部署时数据丢失
+- 备份：`sqlite3 app/homework_pet.db .dump > backups/dump_$(date +%Y%m%d).sql`
+
+### A.7 更新部署
+
+```bash
+git add -A && git commit -m "描述" && git push
+```
+推送后 Railway 自动重新构建部署。
+
+### A.8 常见问题
+
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| 构建失败 `invalid requirement` | `requirements.txt` 含字面 `\n` | 确保每个依赖独占一行（真实换行符） |
+| 启动后立即退出 | `main.py` 未读 `PORT` 环境变量 | 确认末尾 `port=int(os.environ.get("PORT", 5000))` |
+| 502/健康检查失败 | 服务未绑 `0.0.0.0` | 确认 `host="0.0.0.0"` |
+| 静态资源 404 | Railway 未识别静态文件路径 | 确认 `app.mount("/static", ...)` 路径正确 |
+
+---
+
+## 方式 B：Windows 云服务器部署（备选方案）
 
 本指南帮助你将作业小龙部署到 Windows 云服务器，面向公网访问。适用于 Windows Server 2019+ / Windows 10+。
 

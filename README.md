@@ -79,15 +79,20 @@ homework-pet/
 │   ├── database.py           # SQLite 数据库初始化（14 张表）
 │   ├── run_local.py          # 本地开发启动脚本（端口 5001）
 │   ├── static/               # 静态资源
-│   │   └── dragon-skins/     # 5 套皮肤 × 5 阶段透明 PNG
+│   │   ├── dragon-references/ # 进化阶段参考图（JPEG，已压缩）
+│   │   └── dragon-skins/     # 5 套皮肤 × 5 阶段透明 PNG（256×256，已压缩）
 │   ├── templates/
 │   │   └── index.html        # 前端单页面（Jinja2 模板）
-│   └── homework_pet.db       # SQLite 数据库文件（自动生成）
+│   └── homework_pet.db       # SQLite 数据库文件（含生产数据，已入库）
 ├── docs/
+│   ├── 项目地图.html
 │   └── 周学习计划指导.md      # 每周配置参考与龙币经济指南
 ├── prd.md                    # 产品需求文档（v3.0 + v3.1 + v3.2）
-├── DEPLOY.md                 # 云端部署指南
+├── DEPLOY.md                 # 部署指南（Railway + Windows 两种方案）
+├── Procfile                  # Railway 部署启动命令
+├── railway.json              # Railway 构建配置
 ├── requirements.txt          # Python 依赖
+├── start_server.bat          # Windows 本地启动脚本
 └── README.md                 # 本文件
 ```
 
@@ -128,6 +133,8 @@ python run_local.py
 # 生产模式（端口 5000，公网访问）
 python -m uvicorn main:app --host 0.0.0.0 --port 5000
 ```
+
+> **云端部署**：当前生产环境用 Railway，详见 [DEPLOY.md](DEPLOY.md) 方式 A。推送代码到 GitHub 即自动部署，地址：`https://<service-name>.up.railway.app`。
 
 ### 安全测试数据库
 
@@ -170,6 +177,17 @@ python app\test_safe_regression.py
 ---
 
 ## 📜 版本历史
+
+### v3.2.1（2026-06-22，Railway 上线）
+- **部署迁移到 Railway**（连 GitHub 自动构建，公网 24/7 访问）
+- 新增 `Procfile` / `railway.json` 部署配置
+- `main.py` 末尾读取 `PORT` 环境变量，适配 Railway 动态端口
+- `requirements.txt` 修复字面 `\n` 问题，移除未使用的 `sqlalchemy` / `aiosqlite`
+- `homework_pet.db` 入库（含生产数据，部署后直接使用）
+- 静态资源压缩：皮肤 PNG 2048×2048 → 256×256，参考图 JPEG 质量优化
+- **Bug 修复**：数学题"再来一题"自动关闭（答对后 `closeMathQuiz()` 内 `location.reload()` 与 2.5 秒 setTimeout 冲突 → 用 `mathQuizAutoCloseTimer` 变量保存定时器 ID，每次 `startMathQuiz()` 先 `clearTimeout`）
+- **Bug 修复**：手动发布任务金币上限 100（移除 HTML `max="100"` 和 JS `coinsReward > 100` 双重限制）
+- 秒悟平台改造评估：不支持 Python 后端，沙箱代码已保留但未走 CDN 部署
 
 ### v3.2（2026-04-27）
 - 宠物改名功能（点击 ✏️ 输入新名字）
