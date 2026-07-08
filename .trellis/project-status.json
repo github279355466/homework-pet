@@ -1,0 +1,89 @@
+{
+  "project": "homework-pet",
+  "name_cn": "作业小龙",
+  "version": "v3.3.0-dev",
+  "last_updated": "2026-07-08",
+  "status": "in-development",
+  "current_branch": "feature/multi-pet-v3.3",
+  "production": {
+    "platform": "Railway",
+    "url": "https://web-production-a9e82.up.railway.app/",
+    "github_repo": "github279355466/homework-pet",
+    "auto_deploy_from": "main",
+    "start_command": "python app/main.py",
+    "port_env": "PORT"
+  },
+  "tech_stack": {
+    "backend": "FastAPI 0.109",
+    "database": "SQLite",
+    "frontend": "Jinja2 single-page (index.html)",
+    "python": "3.12",
+    "deps": ["fastapi==0.109.0", "uvicorn==0.27.0", "jinja2==3.1.3", "python-multipart==0.0.6", "pytz==2024.1"]
+  },
+  "structure": {
+    "backend_main": "app/main.py",
+    "database_init": "app/database.py",
+    "frontend": "app/templates/index.html",
+    "static": "app/static/",
+    "production_db": "app/homework_pet.db",
+    "docs": "docs/",
+    "scripts": "scripts/",
+    "trellis": ".trellis/",
+    "agents_skills": ".agents/skills/"
+  },
+  "current_task": {
+    "id": "v3.3-multi-pet",
+    "name": "多宠物系统改造",
+    "started": "2026-07-08",
+    "status": "planning-complete",
+    "owner": "codex",
+    "branch": "feature/multi-pet-v3.3",
+    "design_doc": "docs/multi-pet-design.md",
+    "plan_doc": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md",
+    "trellis_dir": ".trellis/tasks/2026-07/v3.3-multi-pet/",
+    "total_tasks": 69,
+    "completed_tasks": 0
+  },
+  "databases": {
+    "production": {
+      "path": "app/homework_pet.db",
+      "writable": false,
+      "notes": "生产数据，禁止直接修改。测试必须用 HOMEWORK_PET_DB_PATH 环境变量切换"
+    },
+    "test_convention": {
+      "env_var": "HOMEWORK_PET_DB_PATH",
+      "test_db_dir": "backups/",
+      "example": "HOMEWORK_PET_DB_PATH=backups/test_v33.db python xxx.py"
+    }
+  },
+  "key_constraints": [
+    "main.py 末尾 port=int(os.environ.get('PORT', 5000)) 必须保留",
+    "推送 main 分支即触发 Railway 自动部署",
+    "静态图片压缩到 256x256 PNG",
+    "前端单页 index.html，后端单文件 main.py"
+  ],
+  "key_tables": {
+    "pet": "全局档案表 (id=1 固定) - coins/streak/math_streak",
+    "tasks": "作业完成记录",
+    "achievements": "成就解锁",
+    "coin_transactions": "龙币交易流水",
+    "pet_accessories": "宠物装饰品",
+    "parent_settings": "家长设置 key-value",
+    "species_catalog": "[v3.3新增] 物种目录",
+    "pet_collection": "[v3.3新增] 宠物个体表"
+  },
+  "api_endpoints_count": 47,
+  "references": {
+    "design_v33": "docs/multi-pet-design.md",
+    "plan_v33": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md",
+    "prd_v33": ".trellis/tasks/2026-07/v3.3-multi-pet/PRD.md",
+    "tasks_v33": ".trellis/tasks/2026-07/v3.3-multi-pet/tasks/",
+    "journal": ".trellis/workspace/liucb/journal-1.md",
+    "claude_md": "CLAUDE.md"
+  },
+  "agents": {
+    "hermes_role": "architect-and-planner",
+    "codex_role": "implementer",
+    "handoff_date": "2026-07-08"
+  }
+}

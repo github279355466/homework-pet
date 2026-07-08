@@ -1,0 +1,21 @@
+{
+  "id": "5.7",
+  "phase": 5,
+  "title": "生成熊猫 5 张图",
+  "files": [
+    "app/static/species/panda/stage-{0-4}.png"
+  ],
+  "depends_on": [
+    "5.1"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-5-7",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

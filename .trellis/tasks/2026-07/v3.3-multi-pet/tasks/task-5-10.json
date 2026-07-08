@@ -1,0 +1,19 @@
+{
+  "id": "5.10",
+  "phase": 5,
+  "title": "get_species_stage_image_path 兼容性验证",
+  "files": [],
+  "depends_on": [
+    "5.9"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-5-10",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

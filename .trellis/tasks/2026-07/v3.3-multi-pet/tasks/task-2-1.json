@@ -1,0 +1,21 @@
+{
+  "id": "2.1",
+  "phase": 2,
+  "title": "重构 add_coins() - 验证无需修改",
+  "files": [
+    "scripts/test_v33_coins_global.py"
+  ],
+  "depends_on": [
+    "1.7"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-2-1",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

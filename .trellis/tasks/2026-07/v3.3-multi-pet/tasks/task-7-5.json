@@ -1,0 +1,19 @@
+{
+  "id": "7.5",
+  "phase": 7,
+  "title": "生产环境冒烟测试",
+  "files": [],
+  "depends_on": [
+    "7.4"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-7-5",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

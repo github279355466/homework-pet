@@ -1,0 +1,21 @@
+{
+  "id": "2.9",
+  "phase": 2,
+  "title": "重构 /api/shop/buy-feed",
+  "files": [
+    "app/main.py:1398-1455"
+  ],
+  "depends_on": [
+    "2.8"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-2-9",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

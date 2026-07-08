@@ -1,0 +1,21 @@
+{
+  "id": "4.2",
+  "phase": 4,
+  "title": "领养中心弹窗",
+  "files": [
+    "app/templates/index.html"
+  ],
+  "depends_on": [
+    "4.1"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-4-2",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

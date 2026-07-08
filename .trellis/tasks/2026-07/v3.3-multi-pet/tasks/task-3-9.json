@@ -1,0 +1,21 @@
+{
+  "id": "3.9",
+  "phase": 3,
+  "title": "迁移 skin_id 从 parent_settings 到 pet_collection",
+  "files": [
+    "app/main.py:1983-2059"
+  ],
+  "depends_on": [
+    "3.8"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-3-9",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

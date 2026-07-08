@@ -1,0 +1,21 @@
+{
+  "id": "6.1",
+  "phase": 6,
+  "title": "迁移测试 (生产备份)",
+  "files": [
+    "scripts/test_v33_migration.py"
+  ],
+  "depends_on": [
+    "5.10"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-6-1",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

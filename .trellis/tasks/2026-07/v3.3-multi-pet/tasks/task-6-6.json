@@ -1,0 +1,19 @@
+{
+  "id": "6.6",
+  "phase": 6,
+  "title": "领养流程测试",
+  "files": [],
+  "depends_on": [
+    "6.5"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-6-6",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

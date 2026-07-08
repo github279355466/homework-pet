@@ -1,0 +1,929 @@
+{
+  "task_id": "v3.3-multi-pet",
+  "total_tasks": 69,
+  "phases": [
+    {
+      "phase": 0,
+      "name": "环境准备",
+      "task_count": 4,
+      "estimate_days": 0.5
+    },
+    {
+      "phase": 1,
+      "name": "数据库+迁移",
+      "task_count": 8,
+      "estimate_days": 1.5
+    },
+    {
+      "phase": 2,
+      "name": "后端旧API重构",
+      "task_count": 13,
+      "estimate_days": 2
+    },
+    {
+      "phase": 3,
+      "name": "新增多宠物API",
+      "task_count": 11,
+      "estimate_days": 2
+    },
+    {
+      "phase": 4,
+      "name": "前端UI",
+      "task_count": 7,
+      "estimate_days": 3
+    },
+    {
+      "phase": 5,
+      "name": "AI图片资源",
+      "task_count": 10,
+      "estimate_days": 2
+    },
+    {
+      "phase": 6,
+      "name": "端到端测试",
+      "task_count": 10,
+      "estimate_days": 1.5
+    },
+    {
+      "phase": 7,
+      "name": "部署上线",
+      "task_count": 6,
+      "estimate_days": 0.5
+    }
+  ],
+  "total_estimate_days": 13,
+  "tasks": [
+    {
+      "id": "0.1",
+      "phase": 0,
+      "title": "备份生产数据库",
+      "files": [
+        "backups/"
+      ],
+      "depends_on": [],
+      "status": "pending",
+      "plan_section": "Task 0.1: 备份生产数据库"
+    },
+    {
+      "id": "0.2",
+      "phase": 0,
+      "title": "创建功能分支 feature/multi-pet-v3.3",
+      "files": [],
+      "depends_on": [],
+      "status": "pending",
+      "plan_section": "Task 0.2: 创建功能分支 feature/multi-pet-v3.3"
+    },
+    {
+      "id": "0.3",
+      "phase": 0,
+      "title": "版本号升级到 v3.3.0",
+      "files": [
+        "app/main.py:67",
+        "CLAUDE.md"
+      ],
+      "depends_on": [
+        "0.2"
+      ],
+      "status": "pending",
+      "plan_section": "Task 0.3: 版本号升级到 v3.3.0"
+    },
+    {
+      "id": "0.4",
+      "phase": 0,
+      "title": "创建计划追踪文件",
+      "files": [
+        "docs/plans/2026-07-08-multi-pet-v3.3-progress.md"
+      ],
+      "depends_on": [
+        "0.2"
+      ],
+      "status": "pending",
+      "plan_section": "Task 0.4: 创建计划追踪文件"
+    },
+    {
+      "id": "1.1",
+      "phase": 1,
+      "title": "新增 species_catalog 表 DDL",
+      "files": [
+        "app/database.py"
+      ],
+      "depends_on": [],
+      "status": "pending",
+      "plan_section": "Task 1.1: 新增 species_catalog 表 DDL"
+    },
+    {
+      "id": "1.2",
+      "phase": 1,
+      "title": "新增 pet_collection 表 DDL",
+      "files": [
+        "app/database.py"
+      ],
+      "depends_on": [
+        "1.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 1.2: 新增 pet_collection 表 DDL"
+    },
+    {
+      "id": "1.3",
+      "phase": 1,
+      "title": "给 pet 表增加 active_pet_id 字段",
+      "files": [
+        "app/database.py"
+      ],
+      "depends_on": [
+        "1.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 1.3: 给 pet 表增加 active_pet_id 字段"
+    },
+    {
+      "id": "1.4",
+      "phase": 1,
+      "title": "初始化 7 个物种目录数据",
+      "files": [
+        "app/database.py"
+      ],
+      "depends_on": [
+        "1.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 1.4: 初始化 7 个物种目录数据"
+    },
+    {
+      "id": "1.5",
+      "phase": 1,
+      "title": "实现 migrate_single_to_multi_pet() 迁移函数",
+      "files": [
+        "app/migrations/v3.3_multi_pet.py",
+        "app/database.py"
+      ],
+      "depends_on": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4"
+      ],
+      "status": "pending",
+      "plan_section": "Task 1.5: 实现 migrate_single_to_multi_pet() 迁移函数"
+    },
+    {
+      "id": "1.6",
+      "phase": 1,
+      "title": "实现 sync_active_pet_mirror() 兼容层",
+      "files": [
+        "app/pet_helpers.py"
+      ],
+      "depends_on": [
+        "1.5"
+      ],
+      "status": "pending",
+      "plan_section": "Task 1.6: 实现 sync_active_pet_mirror() 兼容层"
+    },
+    {
+      "id": "1.7",
+      "phase": 1,
+      "title": "迁移测试 (端到端验证)",
+      "files": [
+        "scripts/test_v33_migration.py"
+      ],
+      "depends_on": [
+        "1.5",
+        "1.6"
+      ],
+      "status": "pending",
+      "plan_section": "Task 1.7: 迁移测试 (端到端验证)"
+    },
+    {
+      "id": "1.8",
+      "phase": 1,
+      "title": "补全 Phase 1 验证清单",
+      "files": [],
+      "depends_on": [
+        "1.7"
+      ],
+      "status": "pending",
+      "plan_section": "Task 1.8: 补全 Phase 1 验证清单"
+    },
+    {
+      "id": "2.1",
+      "phase": 2,
+      "title": "重构 add_coins() - 验证无需修改",
+      "files": [
+        "scripts/test_v33_coins_global.py"
+      ],
+      "depends_on": [
+        "1.7"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.1: 重构 add_coins() - 验证无需修改"
+    },
+    {
+      "id": "2.2",
+      "phase": 2,
+      "title": "重构 /api/task/complete",
+      "files": [
+        "app/main.py:553-715"
+      ],
+      "depends_on": [
+        "1.6",
+        "2.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.2: 重构 /api/task/complete"
+    },
+    {
+      "id": "2.3",
+      "phase": 2,
+      "title": "重构 /api/pet/feed",
+      "files": [
+        "app/main.py:717-746"
+      ],
+      "depends_on": [
+        "2.2"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.3: 重构 /api/pet/feed"
+    },
+    {
+      "id": "2.4",
+      "phase": 2,
+      "title": "重构 /api/pet/interact",
+      "files": [
+        "app/main.py:750-805"
+      ],
+      "depends_on": [
+        "2.3"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.4: 重构 /api/pet/interact"
+    },
+    {
+      "id": "2.5",
+      "phase": 2,
+      "title": "重构 /api/pet/rename",
+      "files": [
+        "app/main.py:808-819"
+      ],
+      "depends_on": [
+        "2.4"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.5: 重构 /api/pet/rename"
+    },
+    {
+      "id": "2.6",
+      "phase": 2,
+      "title": "重构 /api/scheduler/run (关键)",
+      "files": [
+        "app/main.py:1814-1916"
+      ],
+      "depends_on": [
+        "2.5"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.6: 重构 /api/scheduler/run (关键)"
+    },
+    {
+      "id": "2.7",
+      "phase": 2,
+      "title": "重构 /api/pet/mood",
+      "files": [
+        "app/main.py:1656-1708"
+      ],
+      "depends_on": [
+        "2.6"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.7: 重构 /api/pet/mood"
+    },
+    {
+      "id": "2.8",
+      "phase": 2,
+      "title": "重构 /api/random-surprise",
+      "files": [
+        "app/main.py:1711-1766"
+      ],
+      "depends_on": [
+        "2.7"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.8: 重构 /api/random-surprise"
+    },
+    {
+      "id": "2.9",
+      "phase": 2,
+      "title": "重构 /api/shop/buy-feed",
+      "files": [
+        "app/main.py:1398-1455"
+      ],
+      "depends_on": [
+        "2.8"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.9: 重构 /api/shop/buy-feed"
+    },
+    {
+      "id": "2.10",
+      "phase": 2,
+      "title": "重构 /api/pet/math-quiz 和 /api/pet/math-quiz/answer",
+      "files": [
+        "app/main.py:2063-2134"
+      ],
+      "depends_on": [
+        "2.9"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.10: 重构 /api/pet/math-quiz 和 /api/pet/math-quiz/answer"
+    },
+    {
+      "id": "2.11",
+      "phase": 2,
+      "title": "重构首页 / 路由",
+      "files": [
+        "app/main.py:346-524",
+        "app/pet_helpers.py"
+      ],
+      "depends_on": [
+        "2.10"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.11: 重构首页 / 路由"
+    },
+    {
+      "id": "2.12",
+      "phase": 2,
+      "title": "重构 /api/parent/reset-data",
+      "files": [
+        "app/main.py:1366-1397"
+      ],
+      "depends_on": [
+        "2.11"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.12: 重构 /api/parent/reset-data"
+    },
+    {
+      "id": "2.13",
+      "phase": 2,
+      "title": "更新 check_achievements 函数",
+      "files": [
+        "app/main.py:278-342"
+      ],
+      "depends_on": [
+        "2.11"
+      ],
+      "status": "pending",
+      "plan_section": "Task 2.13: 更新 check_achievements 函数"
+    },
+    {
+      "id": "3.1",
+      "phase": 3,
+      "title": "GET /api/pets - 获取宠物列表",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "2.13"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.1: GET /api/pets - 获取宠物列表"
+    },
+    {
+      "id": "3.2",
+      "phase": 3,
+      "title": "GET /api/pets/active - 激活宠物详情",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.2: GET /api/pets/active - 激活宠物详情"
+    },
+    {
+      "id": "3.3",
+      "phase": 3,
+      "title": "POST /api/pets/switch - 切换激活宠物 (核心)",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.2"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.3: POST /api/pets/switch - 切换激活宠物 (核心)"
+    },
+    {
+      "id": "3.4",
+      "phase": 3,
+      "title": "GET /api/pets/species - 物种目录",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.3"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.4: GET /api/pets/species - 物种目录"
+    },
+    {
+      "id": "3.5",
+      "phase": 3,
+      "title": "POST /api/pets/adopt - 商店购买领养",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.4"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.5: POST /api/pets/adopt - 商店购买领养"
+    },
+    {
+      "id": "3.6",
+      "phase": 3,
+      "title": "GET /api/pets/gacha/config - 扭蛋配置",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.5"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.6: GET /api/pets/gacha/config - 扭蛋配置"
+    },
+    {
+      "id": "3.7",
+      "phase": 3,
+      "title": "POST /api/pets/gacha - 扭蛋抽取",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.6"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.7: POST /api/pets/gacha - 扭蛋抽取"
+    },
+    {
+      "id": "3.8",
+      "phase": 3,
+      "title": "成就解锁自动发放宠物",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.7"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.8: 成就解锁自动发放宠物"
+    },
+    {
+      "id": "3.9",
+      "phase": 3,
+      "title": "迁移 skin_id 从 parent_settings 到 pet_collection",
+      "files": [
+        "app/main.py:1983-2059"
+      ],
+      "depends_on": [
+        "3.8"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.9: 迁移 skin_id 从 parent_settings 到 pet_collection"
+    },
+    {
+      "id": "3.10",
+      "phase": 3,
+      "title": "POST /api/pets/{pet_id}/rename - 个体重命名",
+      "files": [
+        "app/main.py"
+      ],
+      "depends_on": [
+        "3.9"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.10: POST /api/pets/{pet_id}/rename - 个体重命名"
+    },
+    {
+      "id": "3.11",
+      "phase": 3,
+      "title": "Phase 3 API 端到端测试",
+      "files": [
+        "scripts/test_v33_apis.py"
+      ],
+      "depends_on": [
+        "3.10"
+      ],
+      "status": "pending",
+      "plan_section": "Task 3.11: Phase 3 API 端到端测试"
+    },
+    {
+      "id": "4.1",
+      "phase": 4,
+      "title": "宠物卡片轮播组件",
+      "files": [
+        "app/templates/index.html"
+      ],
+      "depends_on": [
+        "3.11"
+      ],
+      "status": "pending",
+      "plan_section": "Task 4.1: 宠物卡片轮播组件"
+    },
+    {
+      "id": "4.2",
+      "phase": 4,
+      "title": "领养中心弹窗",
+      "files": [
+        "app/templates/index.html"
+      ],
+      "depends_on": [
+        "4.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 4.2: 领养中心弹窗"
+    },
+    {
+      "id": "4.3",
+      "phase": 4,
+      "title": "扭蛋机弹窗",
+      "files": [
+        "app/templates/index.html"
+      ],
+      "depends_on": [
+        "4.2"
+      ],
+      "status": "pending",
+      "plan_section": "Task 4.3: 扭蛋机弹窗"
+    },
+    {
+      "id": "4.4",
+      "phase": 4,
+      "title": "适配旧 /api/pet 调用",
+      "files": [
+        "app/templates/index.html"
+      ],
+      "depends_on": [
+        "4.3"
+      ],
+      "status": "pending",
+      "plan_section": "Task 4.4: 适配旧 /api/pet 调用"
+    },
+    {
+      "id": "4.5",
+      "phase": 4,
+      "title": "皮肤选择 UI 改为按个体",
+      "files": [
+        "app/templates/index.html:1994-2060"
+      ],
+      "depends_on": [
+        "4.4"
+      ],
+      "status": "pending",
+      "plan_section": "Task 4.5: 皮肤选择 UI 改为按个体"
+    },
+    {
+      "id": "4.6",
+      "phase": 4,
+      "title": "成就解锁宠物弹窗",
+      "files": [
+        "app/templates/index.html",
+        "app/main.py"
+      ],
+      "depends_on": [
+        "4.5"
+      ],
+      "status": "pending",
+      "plan_section": "Task 4.6: 成就解锁宠物弹窗"
+    },
+    {
+      "id": "4.7",
+      "phase": 4,
+      "title": "Phase 4 前端冒烟测试",
+      "files": [],
+      "depends_on": [
+        "4.6"
+      ],
+      "status": "pending",
+      "plan_section": "Task 4.7: Phase 4 前端冒烟测试"
+    },
+    {
+      "id": "5.1",
+      "phase": 5,
+      "title": "定义图片生成 Prompt 模板",
+      "files": [
+        "docs/plans/v3.3-image-prompts.md"
+      ],
+      "depends_on": [
+        "4.7"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.1: 定义图片生成 Prompt 模板"
+    },
+    {
+      "id": "5.2",
+      "phase": 5,
+      "title": "生成猫 5 张图",
+      "files": [
+        "app/static/species/cat/stage-{0-4}.png"
+      ],
+      "depends_on": [
+        "5.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.2: 生成猫 5 张图"
+    },
+    {
+      "id": "5.3",
+      "phase": 5,
+      "title": "生成兔 5 张图",
+      "files": [
+        "app/static/species/rabbit/stage-{0-4}.png"
+      ],
+      "depends_on": [
+        "5.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.3: 生成兔 5 张图"
+    },
+    {
+      "id": "5.4",
+      "phase": 5,
+      "title": "生成狐 5 张图",
+      "files": [
+        "app/static/species/fox/stage-{0-4}.png"
+      ],
+      "depends_on": [
+        "5.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.4: 生成狐 5 张图"
+    },
+    {
+      "id": "5.5",
+      "phase": 5,
+      "title": "生成独角兽 5 张图",
+      "files": [
+        "app/static/species/unicorn/stage-{0-4}.png"
+      ],
+      "depends_on": [
+        "5.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.5: 生成独角兽 5 张图"
+    },
+    {
+      "id": "5.6",
+      "phase": 5,
+      "title": "生成凤凰 5 张图",
+      "files": [
+        "app/static/species/phoenix/stage-{0-4}.png"
+      ],
+      "depends_on": [
+        "5.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.6: 生成凤凰 5 张图"
+    },
+    {
+      "id": "5.7",
+      "phase": 5,
+      "title": "生成熊猫 5 张图",
+      "files": [
+        "app/static/species/panda/stage-{0-4}.png"
+      ],
+      "depends_on": [
+        "5.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.7: 生成熊猫 5 张图"
+    },
+    {
+      "id": "5.8",
+      "phase": 5,
+      "title": "龙图片处理 (保留或重生成)",
+      "files": [
+        "app/static/species/dragon/stage-{0-4}.png"
+      ],
+      "depends_on": [
+        "5.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.8: 龙图片处理 (保留或重生成)"
+    },
+    {
+      "id": "5.9",
+      "phase": 5,
+      "title": "图片资源完整性检查",
+      "files": [],
+      "depends_on": [
+        "5.2",
+        "5.3",
+        "5.4",
+        "5.5",
+        "5.6",
+        "5.7",
+        "5.8"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.9: 图片资源完整性检查"
+    },
+    {
+      "id": "5.10",
+      "phase": 5,
+      "title": "get_species_stage_image_path 兼容性验证",
+      "files": [],
+      "depends_on": [
+        "5.9"
+      ],
+      "status": "pending",
+      "plan_section": "Task 5.10: get_species_stage_image_path 兼容性验证"
+    },
+    {
+      "id": "6.1",
+      "phase": 6,
+      "title": "迁移测试 (生产备份)",
+      "files": [
+        "scripts/test_v33_migration.py"
+      ],
+      "depends_on": [
+        "5.10"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.1: 迁移测试 (生产备份)"
+    },
+    {
+      "id": "6.2",
+      "phase": 6,
+      "title": "完成作业 - exp 写入激活宠物",
+      "files": [],
+      "depends_on": [
+        "6.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.2: 完成作业 - exp 写入激活宠物"
+    },
+    {
+      "id": "6.3",
+      "phase": 6,
+      "title": "切换宠物 - 冻结验证",
+      "files": [],
+      "depends_on": [
+        "6.2"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.3: 切换宠物 - 冻结验证"
+    },
+    {
+      "id": "6.4",
+      "phase": 6,
+      "title": "调度器 - 只衰减激活宠物",
+      "files": [],
+      "depends_on": [
+        "6.3"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.4: 调度器 - 只衰减激活宠物"
+    },
+    {
+      "id": "6.5",
+      "phase": 6,
+      "title": "皮肤 - 按个体生效",
+      "files": [],
+      "depends_on": [
+        "6.4"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.5: 皮肤 - 按个体生效"
+    },
+    {
+      "id": "6.6",
+      "phase": 6,
+      "title": "领养流程测试",
+      "files": [],
+      "depends_on": [
+        "6.5"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.6: 领养流程测试"
+    },
+    {
+      "id": "6.7",
+      "phase": 6,
+      "title": "扭蛋流程测试",
+      "files": [],
+      "depends_on": [
+        "6.6"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.7: 扭蛋流程测试"
+    },
+    {
+      "id": "6.8",
+      "phase": 6,
+      "title": "成就解锁自动发放测试",
+      "files": [],
+      "depends_on": [
+        "6.7"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.8: 成就解锁自动发放测试"
+    },
+    {
+      "id": "6.9",
+      "phase": 6,
+      "title": "旧 API 兼容性测试",
+      "files": [],
+      "depends_on": [
+        "6.8"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.9: 旧 API 兼容性测试"
+    },
+    {
+      "id": "6.10",
+      "phase": 6,
+      "title": "完整回归测试",
+      "files": [],
+      "depends_on": [
+        "6.9"
+      ],
+      "status": "pending",
+      "plan_section": "Task 6.10: 完整回归测试"
+    },
+    {
+      "id": "7.1",
+      "phase": 7,
+      "title": "更新 CLAUDE.md",
+      "files": [
+        "CLAUDE.md"
+      ],
+      "depends_on": [
+        "6.10"
+      ],
+      "status": "pending",
+      "plan_section": "Task 7.1: 更新 CLAUDE.md"
+    },
+    {
+      "id": "7.2",
+      "phase": 7,
+      "title": "更新 README.md",
+      "files": [
+        "README.md"
+      ],
+      "depends_on": [
+        "7.1"
+      ],
+      "status": "pending",
+      "plan_section": "Task 7.2: 更新 README.md"
+    },
+    {
+      "id": "7.3",
+      "phase": 7,
+      "title": "合并到 main 分支",
+      "files": [],
+      "depends_on": [
+        "7.2"
+      ],
+      "status": "pending",
+      "plan_section": "Task 7.3: 合并到 main 分支"
+    },
+    {
+      "id": "7.4",
+      "phase": 7,
+      "title": "推送到 GitHub 触发 Railway 部署",
+      "files": [],
+      "depends_on": [
+        "7.3"
+      ],
+      "status": "pending",
+      "plan_section": "Task 7.4: 推送到 GitHub 触发 Railway 部署"
+    },
+    {
+      "id": "7.5",
+      "phase": 7,
+      "title": "生产环境冒烟测试",
+      "files": [],
+      "depends_on": [
+        "7.4"
+      ],
+      "status": "pending",
+      "plan_section": "Task 7.5: 生产环境冒烟测试"
+    },
+    {
+      "id": "7.6",
+      "phase": 7,
+      "title": "标记计划完成",
+      "files": [
+        "docs/plans/2026-07-08-multi-pet-v3.3-progress.md"
+      ],
+      "depends_on": [
+        "7.5"
+      ],
+      "status": "pending",
+      "plan_section": "Task 7.6: 标记计划完成"
+    }
+  ]
+}

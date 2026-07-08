@@ -1,0 +1,21 @@
+{
+  "id": "4.5",
+  "phase": 4,
+  "title": "皮肤选择 UI 改为按个体",
+  "files": [
+    "app/templates/index.html:1994-2060"
+  ],
+  "depends_on": [
+    "4.4"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-4-5",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

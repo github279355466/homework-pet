@@ -1,0 +1,22 @@
+{
+  "id": "2.11",
+  "phase": 2,
+  "title": "重构首页 / 路由",
+  "files": [
+    "app/main.py:346-524",
+    "app/pet_helpers.py"
+  ],
+  "depends_on": [
+    "2.10"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-2-11",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}

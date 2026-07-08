@@ -1,0 +1,19 @@
+{
+  "id": "6.10",
+  "phase": 6,
+  "title": "完整回归测试",
+  "files": [],
+  "depends_on": [
+    "6.9"
+  ],
+  "status": "pending",
+  "assignee": "codex",
+  "branch": "feature/multi-pet-v3.3",
+  "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-6-10",
+  "created_at": "2026-07-08",
+  "started_at": null,
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": null
+}
