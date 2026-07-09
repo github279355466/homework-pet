@@ -276,6 +276,26 @@ def add_coins(conn, amount, source, description="", double_weekend=False):
     conn.execute("UPDATE pet SET coins = ? WHERE id = 1", (new_balance,))
     return new_balance
 
+def spend_coins(conn, amount, source, description=""):
+    """扣龙币（全局钱包）。余额不足返回 False（不扣、不写流水）；成功返回新余额。
+
+    与 add_coins 对称：校验 → 写 coin_transactions(type='spend') → UPDATE pet.coins。
+    仅用于 adopt/gacha 等"必须先校验余额"的场景；与 add_coins 共用流水可对账。
+    """
+    pet = conn.execute("SELECT coins FROM pet WHERE id = 1").fetchone()
+    if not pet:
+        return False
+    if amount <= 0:
+        return pet['coins']
+    if pet['coins'] < amount:
+        return False
+    new_balance = pet['coins'] - amount
+    conn.execute(
+        "INSERT INTO coin_transactions (type, source, amount, balance_after, description) VALUES (?,?,?,?,?)",
+        ('spend', source, -amount, new_balance, description))
+    conn.execute("UPDATE pet SET coins = ? WHERE id = 1", (new_balance,))
+    return new_balance
+
 def check_achievements(conn, streak, stage, math_streak=0, bond=50, total_focus_minutes=0, total_coins_earned=0):
     """检查并解锁成就"""
     achievements = conn.execute("SELECT * FROM achievements WHERE unlocked = 0").fetchall()
@@ -2333,6 +2353,203 @@ async def get_pet_species():
             'enabled': d.get('enabled', 1),
         })
     return {"species": species}
+
+
+# ===== v3.3 获取系统（领养商店 / 扭蛋机 / 签到发宠）=====
+
+# 扭蛋机配置（数据驱动：奖池物种以 species_catalog 中 acquisition_methods 含 'gacha' 为准；权重以 GACHA_POOL 为默认）
+GACHA_POOL = {'rabbit': 0.50, 'fox': 0.30, 'unicorn': 0.20}
+GACHA_SINGLE_COST = int(os.environ.get("GACHA_COST", "50"))   # 单次扭蛋价（龙币）
+GACHA_DUPE_RATE = 0.50                                         # 重复抽中补偿比例（50% 价值）
+
+# 签到配置（均可配置）
+SIGNIN_DAILY_COIN = int(os.environ.get("SIGNIN_DAILY_COIN", "5"))          # 每日基础龙币
+SIGNIN_PANDA_INTERVAL = int(os.environ.get("SIGNIN_PANDA_INTERVAL", "7"))  # 每 N 次发熊猫
+SIGNIN_DUP_COIN = int(os.environ.get("SIGNIN_DUP_COIN", "30"))             # 熊猫已拥有的补偿
+
+
+@app.get("/api/pets/shop")
+async def get_adopt_shop():
+    """领养商店：返回可领养（shop 途径）物种列表，并标注是否已拥有（供前端禁用已拥有项）。"""
+    conn = get_db_connection()
+    rows = conn.execute(
+        "SELECT * FROM species_catalog WHERE enabled=1 AND acquisition_methods LIKE '%shop%' ORDER BY sort_order"
+    ).fetchall()
+    owned = {r['species_id'] for r in conn.execute("SELECT species_id FROM pet_collection").fetchall()}
+    conn.close()
+    items = []
+    for r in rows:
+        d = dict(r)
+        items.append({
+            'id': d['id'],
+            'name': d['name'],
+            'icon': d['icon'],
+            'desc': d.get('desc', ''),
+            'base_price': d.get('base_price', 0),
+            'rarity': d.get('rarity', 'common'),
+            'image': f"/static/species/{d['id']}/stage-0.png",
+            'owned': d['id'] in owned,
+        })
+    return {"shop": items}
+
+
+@app.post("/api/pets/adopt")
+async def adopt_pet(species_id: str = Form(...)):
+    """领养商店宠物：校验物种 → 查重（同物种限 1 只）→ 扣龙币 → 发放冻结宠物。"""
+    conn = get_db_connection()
+    sp = conn.execute(
+        "SELECT * FROM species_catalog WHERE id=? AND enabled=1", (species_id,)).fetchone()
+    if not sp:
+        conn.close()
+        return {"success": False, "code": "NO_SPECIES", "message": "物种不存在或未上架"}
+
+    methods = (sp['acquisition_methods'] or '').split(',')
+    if 'shop' not in methods:
+        conn.close()
+        return {"success": False, "code": "NOT_SHOP", "message": f"{sp['name']}不可通过商店领养"}
+
+    # 同物种限 1 只（已确认决策）
+    if conn.execute("SELECT 1 FROM pet_collection WHERE species_id=?", (species_id,)).fetchone():
+        conn.close()
+        return {"success": False, "code": "ALREADY_OWNED",
+                "message": f"你已经拥有{sp['name']}啦（同物种限 1 只）"}
+
+    price = sp['base_price']
+    new_balance = spend_coins(conn, price, 'adopt', f'领养{sp["name"]}')
+    if new_balance is False:
+        conn.close()
+        return {"success": False, "code": "NO_COINS", "message": f"龙币不足，需要{price}龙币"}
+
+    try:
+        cur = conn.execute("""
+            INSERT INTO pet_collection
+                (species_id, skin_id, name, exp, hunger, mood, bond, status, acquisition, is_frozen)
+            VALUES (?, 'default', ?, 0, 80, 80, 50, 'happy', 'shop', 1)
+        """, (species_id, sp['name']))
+        new_id = cur.lastrowid
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        conn.close()
+        return {"success": False, "code": "ERR", "message": "领养失败，请重试"}
+
+    coins_now = conn.execute("SELECT coins FROM pet WHERE id=1").fetchone()['coins']
+    conn.close()
+    return {"success": True, "pet_id": new_id, "species_id": species_id,
+            "name": sp['name'], "icon": sp['icon'],
+            "image": f"/static/species/{species_id}/stage-0.png",
+            "message": f"成功领养{sp['name']}！", "coins": coins_now}
+
+
+@app.post("/api/pets/gacha")
+async def gacha(cost: int = Form(None), force_species: str = Form(None)):
+    """扭蛋机：扣龙币 → 随机/强制抽物种 → 新物种发放冻结宠物；重复抽中则转龙币补偿。"""
+    single = cost if (cost and cost > 0) else GACHA_SINGLE_COST
+    conn = get_db_connection()
+
+    # 奖池（数据驱动：acquisition_methods 含 'gacha' 的物种）
+    gacha_rows = conn.execute(
+        "SELECT id, base_price, name, icon FROM species_catalog "
+        "WHERE enabled=1 AND acquisition_methods LIKE '%gacha%'"
+    ).fetchall()
+    if not gacha_rows:
+        conn.close()
+        return {"success": False, "code": "NO_POOL", "message": "扭蛋机暂不可用"}
+    pool_ids = [r['id'] for r in gacha_rows]
+
+    new_balance = spend_coins(conn, single, 'gacha', f'扭蛋×1({single})')
+    if new_balance is False:
+        conn.close()
+        return {"success": False, "code": "NO_COINS", "message": f"龙币不足，需要{single}龙币"}
+
+    # 抽物种（生产随机；测试钩子 force_species 仅在 MULTI_PET_TEST=1 生效）
+    if os.environ.get("MULTI_PET_TEST") == "1" and force_species in pool_ids:
+        species_id = force_species
+    else:
+        weights = [GACHA_POOL.get(sid, 1.0) for sid in pool_ids]
+        species_id = random.choices(pool_ids, weights=weights, k=1)[0]
+
+    sp = conn.execute("SELECT * FROM species_catalog WHERE id=?", (species_id,)).fetchone()
+
+    # 重复抽中 → 转龙币补偿（不重复发宠物）
+    if conn.execute("SELECT 1 FROM pet_collection WHERE species_id=?", (species_id,)).fetchone():
+        comp = int(sp['base_price'] * GACHA_DUPE_RATE)
+        add_coins(conn, comp, 'gacha_dupe', f'扭蛋重复:{sp["name"]}')
+        conn.commit()
+        coins_now = conn.execute("SELECT coins FROM pet WHERE id=1").fetchone()['coins']
+        conn.close()
+        return {"success": True, "duplicated": True, "compensation": comp, "species_id": species_id,
+                "species_name": sp['name'], "icon": sp['icon'],
+                "message": f"{sp['name']}已拥有，转化为{comp}龙币补偿", "coins": coins_now}
+
+    # 新物种 → 发放（冻结态，不打断当前激活宠物）
+    try:
+        cur = conn.execute("""
+            INSERT INTO pet_collection
+                (species_id, skin_id, name, exp, hunger, mood, bond, status, acquisition, is_frozen)
+            VALUES (?, 'default', ?, 0, 80, 80, 50, 'happy', 'gacha', 1)
+        """, (species_id, sp['name']))
+        new_id = cur.lastrowid
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        conn.close()
+        return {"success": False, "code": "ERR", "message": "扭蛋失败，请重试"}
+    coins_now = conn.execute("SELECT coins FROM pet WHERE id=1").fetchone()['coins']
+    conn.close()
+    return {"success": True, "duplicated": False, "species_id": species_id, "pet_id": new_id,
+            "name": sp['name'], "icon": sp['icon'],
+            "image": f"/static/species/{species_id}/stage-0.png",
+            "message": f"抽中{sp['name']}！", "coins": coins_now}
+
+
+@app.post("/api/pets/signin")
+async def daily_signin():
+    """每日签到（幂等，每天一次）：+5 龙币；每 SIGNIN_PANDA_INTERVAL 次发熊猫（未拥有），已拥有则补偿。"""
+    conn = get_db_connection()
+    pet = conn.execute("SELECT last_signin_date, signin_count, coins FROM pet WHERE id=1").fetchone()
+    if not pet:
+        pet = {'last_signin_date': None, 'signin_count': 0, 'coins': 0}
+    today = get_current_time().strftime('%Y-%m-%d')
+
+    # 今日已签到 → 直接返回（防重）
+    if pet['last_signin_date'] == today:
+        conn.close()
+        return {"success": False, "code": "ALREADY_SIGNED", "already_signed": True,
+                "message": "今天已经签到啦"}
+
+    new_count = (pet['signin_count'] or 0) + 1
+    conn.execute("UPDATE pet SET last_signin_date=?, signin_count=? WHERE id=1",
+                 (today, new_count))
+
+    reward = {"type": "coins", "amount": SIGNIN_DAILY_COIN}
+    add_coins(conn, SIGNIN_DAILY_COIN, 'signin', '每日签到')
+    pet_rewarded = False
+
+    # 里程碑：每 SIGNIN_PANDA_INTERVAL 次发熊猫
+    if new_count % SIGNIN_PANDA_INTERVAL == 0:
+        if not conn.execute("SELECT 1 FROM pet_collection WHERE species_id='panda'").fetchone():
+            sp = conn.execute("SELECT * FROM species_catalog WHERE id='panda'").fetchone()
+            cur = conn.execute("""
+                INSERT INTO pet_collection
+                    (species_id, skin_id, name, exp, hunger, mood, bond, status, acquisition, is_frozen)
+                VALUES ('panda', 'default', ?, 0, 80, 80, 50, 'happy', 'signin', 1)
+            """, (sp['name'],))
+            reward = {"type": "pet", "species_id": "panda", "pet_id": cur.lastrowid,
+                      "icon": sp['icon'], "name": sp['name']}
+            pet_rewarded = True
+        else:
+            # 已拥有熊猫 → 额外龙币补偿
+            add_coins(conn, SIGNIN_DUP_COIN, 'signin_panda', '已拥有熊猫补偿')
+            reward = {"type": "coins", "amount": SIGNIN_DAILY_COIN + SIGNIN_DUP_COIN}
+
+    conn.commit()
+    coins_now = conn.execute("SELECT coins FROM pet WHERE id=1").fetchone()['coins']
+    conn.close()
+    msg = "签到成功！" + ("获得熊猫🐼" if pet_rewarded else "")
+    return {"success": True, "already_signed": False, "signin_count": new_count,
+            "reward": reward, "coins": coins_now, "message": msg}
+
 
 # ===== 启动 =====
 

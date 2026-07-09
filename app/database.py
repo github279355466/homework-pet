@@ -125,6 +125,9 @@ def init_db():
         ('coins', 0),
         ('last_decay_date', None),
         ('math_challenge_today', 0),
+        # ===== v3.3 Phase 3 新增：签到字段（增量、幂等）=====
+        ('last_signin_date', None),   # 签到防重（每天一次，全局，与 last_streak_date 同层）
+        ('signin_count', 0),          # 累计签到次数，用于里程碑发宠（避免依赖 streak 语义）
     ]:
         try:
             if default is not None:
