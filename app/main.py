@@ -2354,6 +2354,7 @@ async def get_pet_species():
     """获取物种目录（enabled=1）。"""
     conn = get_db_connection()
     rows = conn.execute("SELECT * FROM species_catalog WHERE enabled = 1 ORDER BY sort_order").fetchall()
+    owned = {r['species_id'] for r in conn.execute("SELECT species_id FROM pet_collection").fetchall()}
     conn.close()
     species = []
     for r in rows:
@@ -2370,6 +2371,7 @@ async def get_pet_species():
             'stage_count': d.get('stage_count', 5),
             'sort_order': d.get('sort_order', 0),
             'enabled': d.get('enabled', 1),
+            'owned': d['id'] in owned,
         })
     return {"species": species}
 
@@ -2380,6 +2382,35 @@ async def get_pet_species():
 GACHA_POOL = {'rabbit': 0.50, 'fox': 0.30, 'unicorn': 0.20}
 GACHA_SINGLE_COST = int(os.environ.get("GACHA_COST", "50"))   # 单次扭蛋价（龙币）
 GACHA_DUPE_RATE = 0.50                                         # 重复抽中补偿比例（50% 价值）
+
+
+@app.get("/api/pets/gacha/config")
+async def get_gacha_config():
+    """返回扭蛋机配置（含各物种是否已拥有）。"""
+    conn = get_db_connection()
+    owned = {r['species_id'] for r in conn.execute("SELECT species_id FROM pet_collection").fetchall()}
+    rows = conn.execute(
+        "SELECT id, name, icon, base_price, rarity FROM species_catalog "
+        "WHERE enabled=1 AND acquisition_methods LIKE '%gacha%' ORDER BY sort_order"
+    ).fetchall()
+    conn.close()
+    return {
+        "cost": GACHA_SINGLE_COST,
+        "dupe_rate": GACHA_DUPE_RATE,
+        "pool": [
+            {
+                "species_id": r['id'],
+                "name": r['name'],
+                "icon": r['icon'],
+                "base_price": r['base_price'],
+                "rarity": r['rarity'],
+                "weight": GACHA_POOL.get(r['id'], 0.1),
+                "owned": r['id'] in owned,
+            }
+            for r in rows
+        ],
+    }
+
 
 # 签到配置（均可配置）
 SIGNIN_DAILY_COIN = int(os.environ.get("SIGNIN_DAILY_COIN", "5"))          # 每日基础龙币
