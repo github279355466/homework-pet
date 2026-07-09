@@ -6,14 +6,14 @@
   "depends_on": [
     "7.4"
   ],
-  "status": "pending",
+  "status": "blocked",
   "assignee": "codex",
   "branch": "feature/multi-pet-v3.3",
   "plan_ref": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md#task-7-5",
   "created_at": "2026-07-08",
-  "started_at": null,
+  "started_at": "2026-07-09",
   "completed_at": null,
   "commit_sha": null,
   "verification_output": null,
-  "notes": null
+  "notes": "BLOCKED: Railway 生产 URL 返回 Application not found，服务未绑定/已被删，待用户在 Railway 面板重建或重连仓库后补冒烟"
 }

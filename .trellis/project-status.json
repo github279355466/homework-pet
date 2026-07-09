@@ -2,7 +2,7 @@
   "project": "homework-pet",
   "name_cn": "作业小龙",
   "version": "v3.3.0-dev",
-  "last_updated": "2026-07-08",
+  "last_updated": "2026-07-09",
   "status": "in-development",
   "current_branch": "feature/multi-pet-v3.3",
   "production": {
@@ -35,25 +35,27 @@
     "id": "v3.3-multi-pet",
     "name": "多宠物系统改造",
     "started": "2026-07-08",
-    "status": "verification-done",
+    "status": "bugs-fixed-deploy-pending",
     "owner": "codex",
     "branch": "main",
     "design_doc": "docs/multi-pet-design.md",
     "plan_doc": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md",
     "trellis_dir": ".trellis/tasks/2026-07/v3.3-multi-pet/",
     "total_tasks": 69,
-    "completed_tasks": 69,
+    "completed_tasks": 67,
     "verification": {
       "verified_by": "hermes",
       "verified_at": "2026-07-09",
       "total_checks": 67,
       "passed": 61,
-      "real_bugs": 2,
+      "real_bugs": 0,
       "bug_details": [
-        "BUG#1: GET /api/pets/gacha/config 未实现 (404)",
-        "BUG#2: GET /api/pets/species 漏掉 owned 字段"
+        "BUG#1: GET /api/pets/gacha/config 未实现 (404) — 已修复 (commit 34a32d1)",
+        "BUG#2: GET /api/pets/species 漏掉 owned 字段 — 已修复 (commit 34a32d1)"
       ],
-      "journal": ".trellis/workspace/liucb/journal-2.md"
+      "journal": ".trellis/workspace/liucb/journal-2.md",
+      "fix_journal": ".trellis/workspace/liucb/journal-3.md",
+      "deploy_blocker": "Railway 生产 URL 返回 Application not found，服务未绑定/已被删；需在 Railway 面板重建或重连仓库后补 task 7.5 冒烟"
     }
   },
   "databases": {

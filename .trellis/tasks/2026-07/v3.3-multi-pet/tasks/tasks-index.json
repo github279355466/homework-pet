@@ -61,7 +61,7 @@
         "backups/"
       ],
       "depends_on": [],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 0.1: 备份生产数据库"
     },
     {
@@ -70,7 +70,7 @@
       "title": "创建功能分支 feature/multi-pet-v3.3",
       "files": [],
       "depends_on": [],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 0.2: 创建功能分支 feature/multi-pet-v3.3"
     },
     {
@@ -84,7 +84,7 @@
       "depends_on": [
         "0.2"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 0.3: 版本号升级到 v3.3.0"
     },
     {
@@ -97,7 +97,7 @@
       "depends_on": [
         "0.2"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 0.4: 创建计划追踪文件"
     },
     {
@@ -108,7 +108,7 @@
         "app/database.py"
       ],
       "depends_on": [],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.1: 新增 species_catalog 表 DDL"
     },
     {
@@ -121,7 +121,7 @@
       "depends_on": [
         "1.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.2: 新增 pet_collection 表 DDL"
     },
     {
@@ -134,7 +134,7 @@
       "depends_on": [
         "1.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.3: 给 pet 表增加 active_pet_id 字段"
     },
     {
@@ -147,7 +147,7 @@
       "depends_on": [
         "1.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.4: 初始化 7 个物种目录数据"
     },
     {
@@ -164,7 +164,7 @@
         "1.3",
         "1.4"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.5: 实现 migrate_single_to_multi_pet() 迁移函数"
     },
     {
@@ -177,7 +177,7 @@
       "depends_on": [
         "1.5"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.6: 实现 sync_active_pet_mirror() 兼容层"
     },
     {
@@ -191,7 +191,7 @@
         "1.5",
         "1.6"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.7: 迁移测试 (端到端验证)"
     },
     {
@@ -202,7 +202,7 @@
       "depends_on": [
         "1.7"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 1.8: 补全 Phase 1 验证清单"
     },
     {
@@ -215,7 +215,7 @@
       "depends_on": [
         "1.7"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.1: 重构 add_coins() - 验证无需修改"
     },
     {
@@ -229,7 +229,7 @@
         "1.6",
         "2.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.2: 重构 /api/task/complete"
     },
     {
@@ -242,7 +242,7 @@
       "depends_on": [
         "2.2"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.3: 重构 /api/pet/feed"
     },
     {
@@ -255,7 +255,7 @@
       "depends_on": [
         "2.3"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.4: 重构 /api/pet/interact"
     },
     {
@@ -268,7 +268,7 @@
       "depends_on": [
         "2.4"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.5: 重构 /api/pet/rename"
     },
     {
@@ -281,7 +281,7 @@
       "depends_on": [
         "2.5"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.6: 重构 /api/scheduler/run (关键)"
     },
     {
@@ -294,7 +294,7 @@
       "depends_on": [
         "2.6"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.7: 重构 /api/pet/mood"
     },
     {
@@ -307,7 +307,7 @@
       "depends_on": [
         "2.7"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.8: 重构 /api/random-surprise"
     },
     {
@@ -320,7 +320,7 @@
       "depends_on": [
         "2.8"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.9: 重构 /api/shop/buy-feed"
     },
     {
@@ -333,7 +333,7 @@
       "depends_on": [
         "2.9"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.10: 重构 /api/pet/math-quiz 和 /api/pet/math-quiz/answer"
     },
     {
@@ -347,7 +347,7 @@
       "depends_on": [
         "2.10"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.11: 重构首页 / 路由"
     },
     {
@@ -360,7 +360,7 @@
       "depends_on": [
         "2.11"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.12: 重构 /api/parent/reset-data"
     },
     {
@@ -373,7 +373,7 @@
       "depends_on": [
         "2.11"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 2.13: 更新 check_achievements 函数"
     },
     {
@@ -386,7 +386,7 @@
       "depends_on": [
         "2.13"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.1: GET /api/pets - 获取宠物列表"
     },
     {
@@ -399,7 +399,7 @@
       "depends_on": [
         "3.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.2: GET /api/pets/active - 激活宠物详情"
     },
     {
@@ -412,7 +412,7 @@
       "depends_on": [
         "3.2"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.3: POST /api/pets/switch - 切换激活宠物 (核心)"
     },
     {
@@ -425,7 +425,7 @@
       "depends_on": [
         "3.3"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.4: GET /api/pets/species - 物种目录"
     },
     {
@@ -438,7 +438,7 @@
       "depends_on": [
         "3.4"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.5: POST /api/pets/adopt - 商店购买领养"
     },
     {
@@ -451,7 +451,7 @@
       "depends_on": [
         "3.5"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.6: GET /api/pets/gacha/config - 扭蛋配置"
     },
     {
@@ -464,7 +464,7 @@
       "depends_on": [
         "3.6"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.7: POST /api/pets/gacha - 扭蛋抽取"
     },
     {
@@ -477,7 +477,7 @@
       "depends_on": [
         "3.7"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.8: 成就解锁自动发放宠物"
     },
     {
@@ -490,7 +490,7 @@
       "depends_on": [
         "3.8"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.9: 迁移 skin_id 从 parent_settings 到 pet_collection"
     },
     {
@@ -503,7 +503,7 @@
       "depends_on": [
         "3.9"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.10: POST /api/pets/{pet_id}/rename - 个体重命名"
     },
     {
@@ -516,7 +516,7 @@
       "depends_on": [
         "3.10"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 3.11: Phase 3 API 端到端测试"
     },
     {
@@ -529,7 +529,7 @@
       "depends_on": [
         "3.11"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 4.1: 宠物卡片轮播组件"
     },
     {
@@ -542,7 +542,7 @@
       "depends_on": [
         "4.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 4.2: 领养中心弹窗"
     },
     {
@@ -555,7 +555,7 @@
       "depends_on": [
         "4.2"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 4.3: 扭蛋机弹窗"
     },
     {
@@ -568,7 +568,7 @@
       "depends_on": [
         "4.3"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 4.4: 适配旧 /api/pet 调用"
     },
     {
@@ -581,7 +581,7 @@
       "depends_on": [
         "4.4"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 4.5: 皮肤选择 UI 改为按个体"
     },
     {
@@ -595,7 +595,7 @@
       "depends_on": [
         "4.5"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 4.6: 成就解锁宠物弹窗"
     },
     {
@@ -606,7 +606,7 @@
       "depends_on": [
         "4.6"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 4.7: Phase 4 前端冒烟测试"
     },
     {
@@ -619,7 +619,7 @@
       "depends_on": [
         "4.7"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.1: 定义图片生成 Prompt 模板"
     },
     {
@@ -632,7 +632,7 @@
       "depends_on": [
         "5.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.2: 生成猫 5 张图"
     },
     {
@@ -645,7 +645,7 @@
       "depends_on": [
         "5.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.3: 生成兔 5 张图"
     },
     {
@@ -658,7 +658,7 @@
       "depends_on": [
         "5.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.4: 生成狐 5 张图"
     },
     {
@@ -671,7 +671,7 @@
       "depends_on": [
         "5.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.5: 生成独角兽 5 张图"
     },
     {
@@ -684,7 +684,7 @@
       "depends_on": [
         "5.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.6: 生成凤凰 5 张图"
     },
     {
@@ -697,7 +697,7 @@
       "depends_on": [
         "5.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.7: 生成熊猫 5 张图"
     },
     {
@@ -710,7 +710,7 @@
       "depends_on": [
         "5.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.8: 龙图片处理 (保留或重生成)"
     },
     {
@@ -727,7 +727,7 @@
         "5.7",
         "5.8"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.9: 图片资源完整性检查"
     },
     {
@@ -738,7 +738,7 @@
       "depends_on": [
         "5.9"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 5.10: get_species_stage_image_path 兼容性验证"
     },
     {
@@ -751,7 +751,7 @@
       "depends_on": [
         "5.10"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.1: 迁移测试 (生产备份)"
     },
     {
@@ -762,7 +762,7 @@
       "depends_on": [
         "6.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.2: 完成作业 - exp 写入激活宠物"
     },
     {
@@ -773,7 +773,7 @@
       "depends_on": [
         "6.2"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.3: 切换宠物 - 冻结验证"
     },
     {
@@ -784,7 +784,7 @@
       "depends_on": [
         "6.3"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.4: 调度器 - 只衰减激活宠物"
     },
     {
@@ -795,7 +795,7 @@
       "depends_on": [
         "6.4"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.5: 皮肤 - 按个体生效"
     },
     {
@@ -806,7 +806,7 @@
       "depends_on": [
         "6.5"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.6: 领养流程测试"
     },
     {
@@ -817,7 +817,7 @@
       "depends_on": [
         "6.6"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.7: 扭蛋流程测试"
     },
     {
@@ -828,7 +828,7 @@
       "depends_on": [
         "6.7"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.8: 成就解锁自动发放测试"
     },
     {
@@ -839,7 +839,7 @@
       "depends_on": [
         "6.8"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.9: 旧 API 兼容性测试"
     },
     {
@@ -850,7 +850,7 @@
       "depends_on": [
         "6.9"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 6.10: 完整回归测试"
     },
     {
@@ -863,7 +863,7 @@
       "depends_on": [
         "6.10"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 7.1: 更新 CLAUDE.md"
     },
     {
@@ -876,7 +876,7 @@
       "depends_on": [
         "7.1"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 7.2: 更新 README.md"
     },
     {
@@ -887,7 +887,7 @@
       "depends_on": [
         "7.2"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 7.3: 合并到 main 分支"
     },
     {
@@ -898,7 +898,7 @@
       "depends_on": [
         "7.3"
       ],
-      "status": "pending",
+      "status": "done",
       "plan_section": "Task 7.4: 推送到 GitHub 触发 Railway 部署"
     },
     {
@@ -909,7 +909,7 @@
       "depends_on": [
         "7.4"
       ],
-      "status": "pending",
+      "status": "blocked",
       "plan_section": "Task 7.5: 生产环境冒烟测试"
     },
     {
