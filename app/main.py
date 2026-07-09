@@ -2211,7 +2211,7 @@ async def answer_math_quiz(answer: int = Form(...), correct_answer: int = Form(.
     pet_dict = dict(pet)
     bond = pet_dict.get('bond', 50)
     if correct:
-        new_coins = add_coins(conn, 10, 'math_quiz', '算术题答对啦！+10龙币')
+        new_coins = add_coins(conn, 10, 'math_quiz', f'算术题答对啦！+10龙币（答案{answer}/正确{correct_answer}）')
         new_mood = min(100, pet['mood'] + 5)
         new_bond = min(100, bond + 2)
         bubble = random.choice(["答对啦！数学小天才！🧮", "完全正确！你好厉害！🎉", "太棒了！小龙为你骄傲！😎"])
@@ -2222,10 +2222,6 @@ async def answer_math_quiz(answer: int = Form(...), correct_answer: int = Form(.
         bubble = random.choice(["不对哦～再想想！🤔", "差一点点！再来！", "下次一定能算对！💪", "没关系，再试试吧！📝"])
     conn.execute("UPDATE pet SET mood = ?, bond = ?, updated_at = ? WHERE id = 1",
                  (new_mood, new_bond, current_time.isoformat()))
-    conn.execute("""
-        INSERT INTO coin_transactions (type, source, amount, balance_after, description)
-        VALUES ('earn', 'math_quiz', ?, (SELECT coins FROM pet WHERE id = 1), ?)
-    """, (10 if correct else 0, f'算术题:答案{answer}正确答案{correct_answer}'))
     conn.commit()
     conn.close()
     return {
