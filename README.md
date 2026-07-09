@@ -1,4 +1,4 @@
-# 🐉 作业小龙 v3.2
+# 🐉 作业小龙 v3.3（多宠物系统）
 
 > 用电子宠物养成 + 代币经济激励孩子完成作业，养成良好学习习惯和行为规范。
 
@@ -75,19 +75,22 @@
 homework-pet/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py               # FastAPI 后端，所有路由和业务逻辑
-│   ├── database.py           # SQLite 数据库初始化（14 张表）
+│   ├── main.py               # FastAPI 后端，所有路由和业务逻辑（~2609 行）
+│   ├── multi_pet.py          # 多宠物迁移 + 兼容层（v3.3 新增）
+│   ├── database.py           # SQLite 数据库初始化（16 张表）
 │   ├── run_local.py          # 本地开发启动脚本（端口 5001）
 │   ├── static/               # 静态资源
 │   │   ├── dragon-references/ # 进化阶段参考图（JPEG，已压缩）
-│   │   └── dragon-skins/     # 5 套皮肤 × 5 阶段透明 PNG（256×256，已压缩）
+│   │   ├── dragon-skins/     # 5 套皮肤 × 5 阶段透明 PNG（256×256，已压缩）
+│   │   └── species/          # 7 物种 × 5 阶段立绘（256×256，已压缩）
 │   ├── templates/
 │   │   └── index.html        # 前端单页面（Jinja2 模板）
 │   └── homework_pet.db       # SQLite 数据库文件（含生产数据，已入库）
 ├── docs/
 │   ├── 项目地图.html
+│   ├── RAILWAY_REDEPLOY_MEMO.md  # v3.3 Railway 重新部署备忘
 │   └── 周学习计划指导.md      # 每周配置参考与龙币经济指南
-├── prd.md                    # 产品需求文档（v3.0 + v3.1 + v3.2）
+├── prd.md                    # 产品需求文档（v3.0 + v3.1 + v3.2 + v3.3）
 ├── DEPLOY.md                 # 部署指南（Railway + Windows 两种方案）
 ├── Procfile                  # Railway 部署启动命令
 ├── railway.json              # Railway 构建配置
@@ -157,7 +160,7 @@ python app\test_safe_regression.py
 
 ## 📡 API 概览
 
-共 **45 个 API 端点**，完整列表见 [prd.md](prd.md) 第 6 章。
+共 **57 个 API 端点**（含 v3.3 新增 10 个多宠物 `/api/pets*` 端点），完整列表见 [prd.md](prd.md) 第 6 章及 [docs/AGENTS.md](docs/AGENTS.md)。
 
 | 分类 | 端点数 | 说明 |
 |------|--------|------|
@@ -173,6 +176,7 @@ python app\test_safe_regression.py
 | 家长设置 | 4 | 设置读写、密码验证/修改 |
 | 其他 | 5 | 鼓励、成就、钱包、周报、定时任务 |
 | 活动系统 | 3 | 心情轮询、随机惊喜、活动状态 |
+| 多宠物系统 | 10 | 宠物列表/激活/切换/改名、物种目录、商店目录、领养、扭蛋(含 config)、签到 |
 
 ---
 
@@ -188,6 +192,16 @@ python app\test_safe_regression.py
 - **Bug 修复**：数学题"再来一题"自动关闭（答对后 `closeMathQuiz()` 内 `location.reload()` 与 2.5 秒 setTimeout 冲突 → 用 `mathQuizAutoCloseTimer` 变量保存定时器 ID，每次 `startMathQuiz()` 先 `clearTimeout`）
 - **Bug 修复**：手动发布任务金币上限 100（移除 HTML `max="100"` 和 JS `coinsReward > 100` 双重限制）
 - 秒悟平台改造评估：不支持 Python 后端，沙箱代码已保留但未走 CDN 部署
+
+### v3.3.0（2026-07-09，push 至 main，Railway 部署 pending）
+- **多宠物系统**：单宠物 → 多宠物（龙/猫/兔/狐/独角兽/凤凰/熊猫），金币/成就/连续打卡全局共享，饱腹/心情/经验/亲密度按个体
+- 新增 `species_catalog` / `pet_collection` 两表 + `pet.active_pet_id`；`multi_pet.py` 镜像兼容层保证旧 `WHERE id=1` 不崩
+- 领养商店 / 扭蛋机（重复转 50% 龙币补偿）/ 签到发宠（每 7 次发熊猫）；`spend_coins()` 全局扣费
+- 前端多宠物化（轮播/切换/领养中心/扭蛋机/签到 + emoji 回退）
+- 35 张 AI 物种立绘（7×5），压缩至 256×256（37MB→2.4MB）
+- **Bug 修复**：math_quiz 龙币流水双写（ab0f0bb）；新增 `GET /api/pets/gacha/config`、补全 `GET /api/pets/species` 的 `owned` 字段（34a32d1）
+- 生产库已增量迁移（紫宝=激活宠物），全部 commit 已 push 至 GitHub main
+- ⚠️ Railway 生产 URL 当前返回 Application not found，待重连/重建服务（见 `docs/RAILWAY_REDEPLOY_MEMO.md`）
 
 ### v3.2（2026-04-27）
 - 宠物改名功能（点击 ✏️ 输入新名字）
@@ -226,7 +240,7 @@ python app\test_safe_regression.py
 
 ---
 
-## 📋 待实现（v3.3+）
+## 📋 待实现（v3.4+）
 
 - [ ] 微信通知推送
 - [ ] 装饰商店完善（帽子/背景/拖尾效果）

@@ -1,10 +1,10 @@
 {
   "project": "homework-pet",
   "name_cn": "作业小龙",
-  "version": "v3.3.0-dev",
+  "version": "v3.3.0",
   "last_updated": "2026-07-09",
   "status": "in-development",
-  "current_branch": "feature/multi-pet-v3.3",
+  "current_branch": "main",
   "production": {
     "platform": "Railway",
     "url": "https://web-production-a9e82.up.railway.app/",
@@ -86,7 +86,7 @@
     "species_catalog": "[v3.3新增] 物种目录",
     "pet_collection": "[v3.3新增] 宠物个体表"
   },
-  "api_endpoints_count": 47,
+  "api_endpoints_count": 57,
   "references": {
     "design_v33": "docs/multi-pet-design.md",
     "plan_v33": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md",

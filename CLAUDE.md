@@ -1,11 +1,11 @@
 # 作业小龙 — Agent 项目指南
 
-> 当前版本：v3.2.1（Railway 上线，2026-06-22）
+> 当前版本：v3.3.0（多宠物系统；2026-07-09 全 Phase 完成并 push 至 main；Railway 部署 pending）
 
 ## 项目状态
 
 - **生产环境**：Railway（连 GitHub `github279355466/homework-pet` 自动构建）
-- **生产地址**：`https://web-production-a9e82.up.railway.app/`
+- **生产地址**：`https://web-production-a9e82.up.railway.app/`（⚠️ 当前返回 Application not found——Railway 服务未绑定，部署 pending；重连/重建步骤见 `docs/RAILWAY_REDEPLOY_MEMO.md`）
 - **数据库**：`app/homework_pet.db`（SQLite，已入库，含生产数据）
 - **本地开发**：`cd app && python run_local.py`（端口 5001）
 
@@ -23,20 +23,21 @@
 - `requirements.txt` 每个依赖独占一行（真实换行符，不能用字面 `\n`）
 
 ### 代码规范
-- 前端单页面 `app/templates/index.html`（Jinja2 模板，~2020 行）
-- 后端单文件 `app/main.py`（FastAPI，~2141 行）
-- 静态图片已压缩：皮肤 PNG 256×256，参考图 JPEG 质量 60
+- 前端单页面 `app/templates/index.html`（Jinja2 模板，~3760 行）
+- 后端单文件 `app/main.py`（FastAPI，~2609 行）+ `app/multi_pet.py`（多宠物迁移+兼容层）
+- 静态图片已压缩：皮肤 PNG 256×256，物种立绘 PNG 256×256（35 张，由 1024² 压缩，37MB→2.4MB）
 - `app/static/dragon-skins/pic/` 目录是参考图素材，不在前端引用
 
 ## 项目结构
 
 ```
 app/
-├── main.py               # 后端主程序
-├── database.py           # 数据库初始化（14 张表）
+├── main.py               # 后端主程序（~2609 行）
+├── multi_pet.py          # 多宠物迁移 + 兼容层（v3.3 新增）
+├── database.py           # 数据库初始化（16 张表）
 ├── run_local.py          # 本地开发启动
 ├── templates/index.html  # 前端单页
-├── static/               # 静态资源
+├── static/               # 静态资源（含 species/ 35 张立绘）
 └── homework_pet.db       # 生产数据库
 Procfile                  # Railway 启动命令
 railway.json              # Railway 构建配置

@@ -10,7 +10,7 @@
 - **后端**：Python 3.12+ / FastAPI 0.109 / uvicorn 0.27
 - **模板**：Jinja2 3.1（**注意坑**：用 `jinja2.Environment` 直接渲染返回 `HTMLResponse`，不用 `Jinja2Templates`，规避 3.1.x 缓存 bug）
 - **数据库**：SQLite（原生 `sqlite3` 模块，**无 ORM**）—— `WAL` 模式 + `busy_timeout=5000` + `connect(timeout=10)`
-- **前端**：单页 `index.html`（3293 行），Bootstrap5 + 原生 JS，靠 `?role=kid|parent` 切换双视图
+- **前端**：单页 `index.html`（3760 行），Bootstrap5 + 原生 JS，靠 `?role=kid|parent` 切换双视图
 - **部署**：Windows 云服务器，OpenResty 反代 → `127.0.0.1:5000`
 
 ## 2. 文件清单（按角色标记）
@@ -18,11 +18,11 @@
 ### 运行时 (RUNTIME — 改这些才影响线上)
 | 路径 | 行数 | 角色 |
 |------|------|------|
-| `app/main.py` | 2141 | FastAPI 应用主体，**全部 45 个路由 + 业务逻辑** |
+| `app/main.py` | 2609 | FastAPI 应用主体，**全部 57 个路由 + 业务逻辑** |
 | `app/database.py` | 365 | 建库/建表、WAL 连接、默认数据初始化；`import` 时自动 `init_db()` |
 | `app/run_local.py` | — | 本地启动器（等同 `uvicorn main:app --port 5000`） |
 | `app/__init__.py` | — | 包标记 |
-| `app/templates/index.html` | 3293 | 前端单页（孩子/家长双视图） |
+| `app/templates/index.html` | 3760 | 前端单页（孩子/家长双视图） |
 | `app/static/` | — | 图片/JS/CSS/皮肤资源（`dragon-skins/`、`dragon-references/`） |
 
 ### 开发 & 测试历史 (DEV-ONLY — 不参与运行时，见 `scripts/README.md`)
@@ -45,7 +45,7 @@
 - `Procfile` / `railway.json` — Railway 部署
 - `start_server.bat` — Windows 启动脚本
 
-## 3. API 端点全景（45 个，按域分组）
+## 3. API 端点全景（57 个，按域分组）
 
 ### 页面 & 宠物
 - `GET  /` — 渲染主页面（Jinja2）
@@ -112,14 +112,26 @@
 ### 系统
 - `POST /api/scheduler/run` — 手动触发衰减/活动调度（正常由内部 scheduler 每日跑）
 
-## 4. 数据库 Schema（14 张表，SQLite）
+### 多宠物系统（v3.3 新增，10 个端点）
+- `GET  /api/pets` — 宠物收藏列表（pet_collection）
+- `GET  /api/pets/active` — 当前激活宠物
+- `POST /api/pets/switch` — 切换激活宠物
+- `POST /api/pets/{pet_id}/rename` — 重命名个体
+- `GET  /api/pets/species` — 物种目录（含 `owned` 标记）
+- `GET  /api/pets/gacha/config` — 扭蛋机配置（cost/dupe_rate/pool）
+- `GET  /api/pets/shop` — 领养商店目录
+- `POST /api/pets/adopt` — 领养（查重 + 扣龙币）
+- `POST /api/pets/gacha` — 扭蛋（重复转 50% 龙币补偿）
+- `POST /api/pets/signin` — 每日签到发宠（每 7 次发熊猫）
+
+## 4. 数据库 Schema（16 张表，SQLite）
 
 > 连接：经 `get_db_connection()`（WAL）。DB 路径 `app/homework_pet.db`（可用 `HOMEWORK_PET_DB_PATH` 覆盖做测试隔离）。
 > `pet` 表在 `init_db()` 里用 `ALTER TABLE` 向前兼容加字段（`last_decay_date`、`math_challenge_today` 等）。
 
 | 表 | 关键字段 | 用途 |
 |----|----------|------|
-| `pet` | id, name, level, exp, hunger, mood, streak, status, bond, coins, last_streak_date, math_streak, last_math_date, last_decay_date, math_challenge_today | 宠物唯一主记录 |
+| `pet` | id, name, level, exp, hunger, mood, streak, status, bond, coins, last_streak_date, math_streak, last_math_date, last_decay_date, math_challenge_today, active_pet_id, last_signin_date, signin_count | 宠物唯一主记录（v3.3 新增 active_pet_id / last_signin_date / signin_count） |
 | `tasks` | id, task_type(daily), subject, completed, exp_reward, created_date | 日常 5 科作业（语文/数学/英语/课外阅读/体育锻炼） |
 | `achievements` | id, name, description, icon, unlocked, unlocked_at | 17 个成就（含 v3.1 新增 4 个） |
 | `encourage` | id, message, expires_at | 家长鼓励消息 |
@@ -133,6 +145,8 @@
 | `focus_sessions` | id, duration_minutes, coins_earned | 专注打卡 |
 | `pet_accessories` | id, name, type(hat/background), price, owned, equipped | 装饰商品 |
 | `parent_settings` | key(PK), value | 汇率/周上限/家长密码/开关 |
+| `species_catalog` | [v3.3新增] id, name, icon, base_price, rarity, acquisition_methods, stage_image_root, stage_count, sort_order, enabled | 物种目录（7 种：dragon/cat/rabbit/fox/unicorn/phoenix/panda） |
+| `pet_collection` | [v3.3新增] id, species_id, name, exp, is_frozen, acquisition, user_id | 宠物个体表（激活态由 pet.active_pet_id 指向） |
 
 **关键业务常量（在 `app/main.py` 顶部定义，改前务必确认）**
 - `EVOLUTION_THRESHOLDS = [0, 800, 2000, 4000, 8000]`（5 阶段：蛋→幼龙→少年龙→青年龙→神龙，前快后慢）
@@ -155,7 +169,7 @@
 ## 6. 双角色模型
 - **孩子视图**：`?role=kid` — 做作业、养宠物、互动、专注、商店、看成就/周报
 - **家长视图**：`?role=parent` — 布置额外任务、行为评价、零花钱审批、改设置（需密码，默认 `1234`）、重置数据
-- 共享同一宠物与数据库，无多账号（多孩子账号在待办 V3.2+）
+- 共享同一宠物与数据库；v3.3 起支持多宠物（多物种个体），但仍为单用户；多孩子账号在待办 V3.4+
 
 ## 7. 部署架构
 ```
@@ -195,7 +209,7 @@ PYTHONPATH=app python scripts/test_safe_regression.py
 ```json
 {
   "project": "homework-pet",
-  "version": "v3.1",
+  "version": "v3.3",
   "summary": "小学生作业激励 Web App：经验进化 + 龙币消费 + 宠物养成",
   "stack": {
     "backend": "FastAPI 0.109 + uvicorn 0.27",
@@ -205,18 +219,19 @@ PYTHONPATH=app python scripts/test_safe_regression.py
     "deploy": "Windows + OpenResty reverse proxy -> 127.0.0.1:5000"
   },
   "runtime_files": [
-    "app/main.py", "app/database.py", "app/run_local.py", "app/__init__.py",
+    "app/main.py", "app/multi_pet.py", "app/database.py", "app/run_local.py", "app/__init__.py",
     "app/templates/index.html", "app/static/"
   ],
   "dev_only_files": [
     "scripts/main_new.py", "scripts/implement_features.py", "scripts/fix_main.py",
     "scripts/test_comprehensive.py", "scripts/test_data_chain.py", "scripts/test_safe_regression.py"
   ],
-  "api_count": 45,
+  "api_count": 57,
   "db_tables": [
     "pet","tasks","achievements","encourage","treasure_log","random_surprises",
     "custom_tasks","behavior_rules","behavior_records","coin_transactions",
-    "pocket_money_records","focus_sessions","pet_accessories","parent_settings"
+    "pocket_money_records","focus_sessions","pet_accessories","parent_settings",
+    "species_catalog","pet_collection"
   ],
   "constants": {
     "EVOLUTION_THRESHOLDS": [0, 800, 2000, 4000, 8000],

@@ -10,8 +10,8 @@
 
 | 项 | 状态 |
 |----|------|
-| 本地 commit | ✅ 6 个全部在 `origin/main`（无未推送） |
-| GitHub 远端 | ✅ 代码 + 已迁移生产库 `app/homework_pet.db` + 35 张立绘 均已推送 |
+| 本地 commit | ✅ 全部已在 `origin/main`（无未推送；含 v3.3 全 Phase + math_quiz/gacha/species 修复 + 立绘压缩 + Trellis 任务状态） |
+| GitHub 远端 | ✅ 代码 + 已迁移生产库 `app/homework_pet.db` + 35 张立绘（已压缩至 256×256）均已推送 |
 | 生产 URL `https://web-production-a9e82.up.railway.app/` | ⚠️ 返回 Railway 网关级 `{"status":"error","code":404,"message":"Application not found"}` |
 | 结论 | **push 成功，但线上没有运行实例**（子域名未绑定任何服务） |
 
