@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作业小龙 · 项目地图 v3.2</title>
+<style>
+  :root{
+    --bg:#f6f8fc; --card:#ffffff; --ink:#1f2937; --sub:#64748b;
+    --line:#e2e8f0; --brand:#6366f1; --brand2:#22c55e; --warn:#f59e0b;
+    --pink:#ec4899; --cyan:#06b6d4; --code:#0f172a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.6;}
+  a{color:var(--brand);text-decoration:none}
+  .wrap{display:flex;max-width:1280px;margin:0 auto}
+  /* sidebar */
+  .side{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;
+    width:230px;background:#0f172a;color:#cbd5e1;padding:22px 16px;flex:0 0 230px}
+  .side h2{font-size:15px;color:#fff;margin:0 0 14px;letter-spacing:1px}
+  .side a{display:block;color:#cbd5e1;padding:7px 10px;border-radius:8px;font-size:13.5px;margin-bottom:3px}
+  .side a:hover{background:#1e293b;color:#fff}
+  .side .grp{font-size:11px;color:#64748b;margin:16px 0 6px;text-transform:uppercase;letter-spacing:1px}
+  /* main */
+  .main{flex:1;padding:32px 40px 80px;min-width:0}
+  .hero{background:linear-gradient(135deg,#6366f1,#22c55e);color:#fff;border-radius:18px;
+    padding:28px 32px;margin-bottom:26px;box-shadow:0 10px 30px rgba(99,102,241,.25)}
+  .hero h1{margin:0 0 6px;font-size:26px}
+  .hero p{margin:0;opacity:.95;font-size:14px}
+  .tag{display:inline-block;background:rgba(255,255,255,.2);padding:3px 11px;border-radius:20px;
+    font-size:12px;margin:8px 6px 0 0}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:24px 28px;margin-bottom:22px;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+  section h2{margin:0 0 4px;font-size:20px;display:flex;align-items:center;gap:10px}
+  section h2 .n{background:var(--brand);color:#fff;width:28px;height:28px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 28px}
+  section h3{font-size:15px;margin:22px 0 8px;color:var(--sub)}
+  .lead{color:var(--sub);font-size:13.5px;margin:2px 0 14px}
+  /* tree */
+  .tree{font-family:Consolas,Menlo,monospace;font-size:13px;background:#0f172a;color:#e2e8f0;
+    padding:18px 20px;border-radius:12px;overflow:auto;line-height:1.85}
+  .tree .d{color:#7dd3fc;font-weight:600}
+  .tree .f{color:#fde68a}
+  .tree .c{color:#94a3b8}
+  .tree .x{color:#fca5a5}
+  /* cards */
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}.side{display:none}}
+  .card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fbfcfe}
+  .card h4{margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:7px}
+  .card p{margin:0;font-size:12.5px;color:var(--sub)}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:0 0 9px}
+  .tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  .tbl th,.tbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  .tbl th{background:#f1f5f9;font-weight:600}
+  .tbl tr:nth-child(even){background:#fafbff}
+  .m{font-family:Consolas,monospace;font-size:12px;background:#eef2ff;color:#3730a3;
+    padding:1px 6px;border-radius:5px}
+  .meth{font-weight:700;font-size:11.5px;padding:2px 7px;border-radius:6px;color:#fff}
+  .get{background:#0ea5e9}.post{background:#22c55e}.del{background:#ef4444}
+  /* schema */
+  .tbl-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px}
+  .tbl-card .hd{background:#1e293b;color:#fff;padding:9px 14px;font-size:13.5px;font-weight:600;
+    display:flex;justify-content:space-between}
+  .tbl-card .hd small{font-weight:400;color:#94a3b8}
+  .tbl-card .bd{padding:10px 14px;font-size:12.5px;color:var(--sub)}
+  .tbl-card .bd code{background:#eef2ff;color:#3730a3;padding:1px 5px;border-radius:4px}
+  /* flow */
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:14px 0}
+  .step{background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:10px 12px;
+    font-size:12.5px;flex:1;min-width:120px;position:relative}
+  .step b{color:#3730a3;display:block;margin-bottom:3px;font-size:12px}
+  .arrow{display:flex;align-items:center;color:#6366f1;font-size:20px;padding:0 4px}
+  /* roles */
+  .role{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  .role .card{border-top:4px solid}
+  .kid{border-top-color:var(--brand2)!important}
+  .par{border-top-color:var(--brand)!important}
+  .legend{font-size:12px;color:var(--sub);margin-top:10px}
+  .pill{display:inline-block;background:#f1f5f9;border:1px solid var(--line);border-radius:20px;
+    padding:2px 10px;font-size:11.5px;margin:3px 3px 0 0;color:#475569}
+  ul.tight{margin:6px 0;padding-left:20px;font-size:13px}
+  ul.tight li{margin:4px 0}
+  .note{border-left:4px solid var(--warn);background:#fffbeb;padding:10px 14px;border-radius:0 10px 10px 0;
+    font-size:12.5px;color:#92400e;margin-top:10px}
+  .ok{border-left-color:var(--brand2);background:#f0fdf4;color:#166534}
+  footer{text-align:center;color:var(--sub);font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- SIDEBAR -->
+  <nav class="side">
+    <h2>🐲 作业小龙</h2>
+    <a href="#overview">概览 & 技术栈</a>
+    <a href="#tree">① 目录结构树</a>
+    <a href="#backend">② 后端架构</a>
+    <a href="#schema">③ 数据库 Schema</a>
+    <a href="#api">④ API 端点全景</a>
+    <a href="#frontend">⑤ 前端结构</a>
+    <a href="#flow">⑥ 核心数据流</a>
+    <a href="#roles">⑦ 双角色模型</a>
+    <a href="#deploy">⑧ 部署架构</a>
+    <a href="#notes">⑨ 注意 & 技术债</a>
+    <div class="grp">统计</div>
+    <a href="#api">45 个路由</a>
+    <a href="#schema">14 张数据表</a>
+    <a href="#tree">~5.5k 行 Python</a>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="hero">
+      <h1>🐲 作业小龙 · 项目地图</h1>
+      <p>面向 1–6 年级儿童的作业激励 Web 应用 · 宠物养成 + 龙币经济 + 家长管控</p>
+      <div>
+        <span class="tag">版本 v3.2</span>
+        <span class="tag">FastAPI + SQLite</span>
+        <span class="tag">HTML/Bootstrap5 + Jinja2</span>
+        <span class="tag">单页前端 3293 行</span>
+        <span class="tag">45 API · 14 表</span>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <section id="overview">
+      <h2><span class="n">★</span>概览 & 技术栈</h2>
+      <p class="lead">“作业小龙”是一个让孩子通过完成作业养成小龙的激励系统：做完作业得经验/龙币，龙币可消费、兑换零花钱，家长端配置任务与评价。核心循环是 <b>作业 → 奖励 → 宠物成长 → 更多动力</b>。</p>
+      <div class="grid g4">
+        <div class="card"><h4><span class="dot" style="background:var(--brand)"></span>后端</h4><p>Python FastAPI（单文件 <code>main.py</code> 2141 行），原生 <code>sqlite3</code>，<code>uvicorn</code> 运行</p></div>
+        <div class="card"><h4><span class="dot" style="background:var(--brand2)"></span>数据层</h4><p>SQLite + WAL 模式，<code>database.py</code> 建表与向前兼容 ALTER</p></div>
+        <div class="card"><h4><span class="dot" style="background:var(--cyan)"></span>前端</h4><p><code>index.html</code> 单页（Jinja2 + 原生 JS），<code>?role=kid|parent</code> 双视图</p></div>
+        <div class="card"><h4><span class="dot" style="background:var(--pink)"></span>渲染</h4><p>弃用 Jinja2Templates，改用 <code>jinja2.Environment</code> 直接渲染 HTMLResponse（规避 3.1.x 缓存 bug）</p></div>
+      </div>
+      <h3>依赖 (requirements.txt)</h3>
+      <div>
+        <span class="pill">fastapi==0.109.0</span><span class="pill">uvicorn==0.27.0</span>
+        <span class="pill">jinja2==3.1.3</span><span class="pill">sqlalchemy==2.0.25</span>
+        <span class="pill">aiosqlite==0.19.0</span><span class="pill">python-multipart==0.0.6</span>
+        <span class="pill">pytz==2024.1</span>
+      </div>
+      <div class="note ok">提示：<code>sqlalchemy</code> / <code>aiosqlite</code> 已声明但实际代码用原生 sqlite3 连接，属冗余依赖。</div>
+    </section>
+
+    <!-- TREE -->
+    <section id="tree">
+      <h2><span class="n">①</span>目录结构树</h2>
+      <p class="lead">项目根 <code>d:\AIProject\workbuddy\homework-pet</code>。运行时真正加载的只有 <code>app/main.py</code> 与 <code>app/database.py</code>，其余 <code>.py</code> 是历史/开发脚本。</p>
+      <div class="tree">
+<span class="d">homework-pet/</span>
+├── <span class="f">app/</span>                          <span class="c"># 应用核心</span>
+│   ├── <span class="f">main.py</span>           <span class="x">★2141行</span>  <span class="c">运行时主程序：FastAPI + 全部45路由 + 进化/皮肤逻辑</span>
+│   ├── <span class="f">database.py</span>       <span class="x">★365行</span>   <span class="c">运行时：建表/连接/WAL/向前兼容</span>
+│   ├── <span class="f">run_local.py</span>      <span class="c">本地启动器(port 5001)</span>
+│   ├── <span class="f">main_new.py</span>       <span class="x">历史</span> <span class="c">早期变体(科目已过时)，未加载</span>
+│   ├── <span class="f">implement_features.py</span> <span class="x">脚本</span> <span class="c">代码生成器(改 main.py/html)</span>
+│   ├── <span class="f">fix_main.py</span>       <span class="x">脚本</span> <span class="c">补丁脚本(皮肤价格/算术题)</span>
+│   ├── <span class="f">test_comprehensive.py</span> <span class="x">测试</span>
+│   ├── <span class="f">test_data_chain.py</span>    <span class="x">测试</span>
+│   ├── <span class="f">test_safe_regression.py</span> <span class="x">测试</span>
+│   ├── <span class="f">templates/</span>
+│   │   ├── <span class="f">index.html</span>    <span class="x">★3293行</span> <span class="c">运行时单页前端</span>
+│   │   └── <span class="f">index_backup.html</span> <span class="c">备份</span>
+│   └── <span class="f">static/</span>
+│       ├── <span class="f">dragon-skins/</span>  <span class="c">default/fire/ice/gold/nature × 5阶段 PNG</span>
+│       └── <span class="f">dragon-references/</span> <span class="c">阶段参考图/互动/进化特效</span>
+├── <span class="f">docs/</span>
+│   ├── <span class="f">周学习计划指导.md</span>  <span class="c">v3.1 家长配置指南</span>
+│   └── <span class="f">项目地图.html</span>      <span class="c">← 本文件</span>
+├── <span class="f">backups/</span>          <span class="c">db 备份(4份)</span>
+├── <span class="f">README.md</span>        <span class="c">总览文档</span>
+├── <span class="f">prd.md</span>           <span class="c">产品需求文档</span>
+├── <span class="f">DEPLOY.md</span>        <span class="c">Windows 云服务器部署(OpenResty)</span>
+├── <span class="f">Procfile</span>          <span class="c">Railway 部署: python app/main.py</span>
+├── <span class="f">railway.json</span>     <span class="c">Railway 配置</span>
+└── <span class="f">start_server.bat</span> <span class="c">Windows 本地启动(uvicorn :5000)</span>
+      </div>
+      <div class="legend"><b>图例：</b><span class="x">★</span>=运行时核心 &nbsp; <span class="x">历史/脚本/测试</span>=不参与运行时 &nbsp; <span class="c"># 注释</span>=用途说明</div>
+    </section>
+
+    <!-- BACKEND -->
+    <section id="backend">
+      <h2><span class="n">②</span>后端架构 (main.py)</h2>
+      <p class="lead">单文件分层：配置/工具函数 → 页面路由 → 按业务域分组的 API → 定时任务 → v3.2 皮肤/算术题。所有 DB 操作为同步 <code>sqlite3</code>，每个请求内 <code>get_db_connection()</code> 开闭。</p>
+      <div class="grid g3">
+        <div class="card"><h4><span class="dot" style="background:var(--brand)"></span>配置常量</h4><p>DEFAULT_TASKS(5科)、CUSTOM_TASK_TEMPLATES(12)、FOCUS_COINS、TREASURE_REWARDS、EVOLUTION_THRESHOLDS=[0,800,2000,4000,8000]、PET_SKINS(5款)</p></div>
+        <div class="card"><h4><span class="dot" style="background:var(--brand2)"></span>进化系统</h4><p>calculate_evolution_stage / stage_progress / get_pet_appearance / get_stage_svg_info（5 阶段：龙蛋→幼龙→少年龙→青年龙→神龙）</p></div>
+        <div class="card"><h4><span class="dot" style="background:var(--cyan)"></span>工具函数</h4><p>get_today_tasks_summary、add_coins(原子交易+周末双倍)、check_achievements(17成就)、calculate_realtime_decay(实时衰减)</p></div>
+        <div class="card"><h4><span class="dot" style="background:var(--pink)"></span>页面路由</h4><p><code>GET /</code> 根据 role 渲染 kid/parent 视图，注入大量上下文变量</p></div>
+        <div class="card"><h4><span class="dot" style="background:#f59e0b"></span>API 路由</h4><p>约 45 个，按 作业/互动/行为/龙币/专注/商店/设置/活动 分组（见④）</p></div>
+        <div class="card"><h4><span class="dot" style="background:#8b5cf6"></span>定时任务</h4><p><code>POST /api/scheduler/run</code>：睡眠结束唤醒、21点无作业→睡觉、实时衰减、过期任务清理</p></div>
+      </div>
+      <div class="note">关键设计：所有奖励写入 <code>coin_transactions</code> 保证可审计；<code>add_coins()</code> 是龙币唯一入口（原子更新余额+交易记录）。成就检查散落各写完逻辑中调用 <code>check_achievements()</code>。</div>
+    </section>
+
+    <!-- SCHEMA -->
+    <section id="schema">
+      <h2><span class="n">③</span>数据库 Schema (14 表)</h2>
+      <p class="lead">单库 <code>homework_pet.db</code>（WAL 模式）。核心实体：<code>pet</code>(1行) ↔ 各类记录表（一对多）。<code>parent_settings</code> 用 key-value 存配置。</p>
+      <div class="grid g2">
+        <div class="tbl-card"><div class="hd">pet <small>宠物状态(单行)</small></div><div class="bd">
+          <code>id</code> <code>name</code> <code>level</code> <code>exp</code> <code>coins</code> <code>hunger</code> <code>mood</code> <code>bond</code> <code>streak</code> <code>status</code>(happy/sleeping…) <code>runaway_until</code> <code>last_streak_date</code> <code>math_streak</code> <code>last_math_date</code> <code>last_decay_date</code> <code>math_challenge_today</code></div></div>
+        <div class="tbl-card"><div class="hd">tasks <small>日常作业完成记录</small></div><div class="bd"><code>subject</code> <code>completed</code> <code>completed_by</code> <code>exp_reward</code> <code>created_date</code></div></div>
+        <div class="tbl-card"><div class="hd">custom_tasks <small>家长额外任务</small></div><div class="bd"><code>subject</code> <code>category</code> <code>exp_reward</code> <code>coins_reward</code> <code>deadline</code> <code>status</code>(pending/completed/expired) <code>completed_at</code></div></div>
+        <div class="tbl-card"><div class="hd">behavior_rules / behavior_records <small>行为评价</small></div><div class="bd">rules:<code>name</code><code>coins</code><code>category</code><code>is_custom</code> &nbsp; records:<code>rule_id</code><code>coins</code><code>category</code></div></div>
+        <div class="tbl-card"><div class="hd">coin_transactions <small>龙币流水(审计)</small></div><div class="bd"><code>type</code>(earn/spend) <code>source</code> <code>amount</code> <code>balance_after</code> <code>description</code></div></div>
+        <div class="tbl-card"><div class="hd">pocket_money_records <small>零花钱兑换</small></div><div class="bd"><code>coins_spent</code> <code>amount_yuan</code> <code>status</code>(pending/approved/rejected)</div></div>
+        <div class="tbl-card"><div class="hd">focus_sessions <small>专注打卡</small></div><div class="bd"><code>duration_minutes</code> <code>coins_earned</code> <code>completed_at</code>（每日≤3次）</div></div>
+        <div class="tbl-card"><div class="hd">achievements <small>17 个成就</small></div><div class="bd"><code>name</code> <code>description</code> <code>icon</code> <code>unlocked</code> <code>unlocked_at</code></div></div>
+        <div class="tbl-card"><div class="hd">pet_accessories <small>装饰商店</small></div><div class="bd"><code>name</code> <code>type</code>(hat/background) <code>price</code> <code>owned</code> <code>equipped</code></div></div>
+        <div class="tbl-card"><div class="hd">parent_settings <small>key-value 配置</small></div><div class="bd"><code>exchange_rate</code> <code>weekly_coin_limit</code> <code>parent_password</code> <code>school_end_time</code> <code>current_skin</code> <code>unlocked_skins</code></div></div>
+        <div class="tbl-card"><div class="hd">encourage <small>鼓励消息</small></div><div class="bd"><code>message</code> <code>expires_at</code></div></div>
+        <div class="tbl-card"><div class="hd">treasure_log / random_surprises <small>宝箱 & 随机惊喜</small></div><div class="bd">treasure_log:<code>reward_type/name/icon</code> &nbsp; random_surprises:<code>surprise_type</code><code>reward_value</code></div></div>
+      </div>
+      <div class="note ok">所有表通过 <code>id INTEGER PRIMARY KEY</code> 关联，业务记录均引用 <code>pet.id=1</code>。无外键约束（靠应用层保证）。</div>
+    </section>
+
+    <!-- API -->
+    <section id="api">
+      <h2><span class="n">④</span>API 端点全景 (45)</h2>
+      <p class="lead">按业务域分组。方法色：<span class="meth get">GET</span> <span class="meth post">POST</span> <span class="meth del">DEL</span></p>
+
+      <h3>🏠 页面 & 宠物核心</h3>
+      <table class="tbl">
+        <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/?role=kid|parent</code></td><td>主页 HTML</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/pet</code></td><td>宠物状态+外观</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/task/complete</code></td><td>完成作业(日常/额外，双倍经验+宝箱)</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pet/feed</code></td><td>喂食(+亲密度)</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pet/interact</code></td><td>互动 pat/tickle/play</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pet/rename</code></td><td>改名</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/pet/mood</code></td><td>心情轮询(v3.1)</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/pet/skins</code></td><td>皮肤列表(v3.2)</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pet/skin/select</code></td><td>选皮肤</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pet/skin/unlock</code></td><td>解锁皮肤</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pet/math-quiz</code></td><td>生成算术题(v3.2)</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pet/math-quiz/answer</code></td><td>答算术题</td></tr>
+      </table>
+
+      <h3>📚 任务 / 成就 / 行为评价</h3>
+      <table class="tbl">
+        <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/tasks</code></td><td>今日任务</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/achievements</code></td><td>成就列表</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/custom-tasks/templates</code></td><td>任务模板(12)</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/custom-tasks/create</code></td><td>家长布置</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/custom-tasks/{id}/complete</code></td><td>孩子完成</td></tr>
+        <tr><td><span class="meth del">DEL</span></td><td><code>/api/custom-tasks/{id}</code></td><td>家长删除</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/behavior/rules</code></td><td>规则列表</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/behavior/evaluate</code></td><td>按规则评价</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/behavior/evaluate/custom</code></td><td>自定义评价</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/behavior/rules/create</code></td><td>新增规则</td></tr>
+        <tr><td><span class="meth del">DEL</span></td><td><code>/api/behavior/rules/{id}</code></td><td>删除规则</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/behavior/today</code></td><td>今日行为(孩子端)</td></tr>
+      </table>
+
+      <h3>🪙 龙币经济 / 专注 / 商店</h3>
+      <table class="tbl">
+        <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/coins/transactions</code></td><td>交易记录</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/coins/stats</code></td><td>龙币统计</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/wallet/detail</code></td><td>钱包详情</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/coins/exchange-pocket-money</code></td><td>申请零花钱</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pocket-money/{id}/approve</code></td><td>审批</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/pocket-money/{id}/reject</code></td><td>拒绝</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/focus/complete</code></td><td>完成专注</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/focus/today</code></td><td>今日专注</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/shop/accessories</code></td><td>装饰列表</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/shop/buy/{id}</code></td><td>购买装饰</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/shop/equip/{id}</code></td><td>装备/卸下</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/shop/buy-feed</code></td><td>买零食并喂食</td></tr>
+      </table>
+
+      <h3>⚙️ 家长设置 / 鼓励 / 活动 / 调度</h3>
+      <table class="tbl">
+        <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/parent/settings</code></td><td>家长设置</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/parent/settings</code></td><td>更新设置</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/parent/verify</code></td><td>验证密码</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/parent/change-password</code></td><td>改密码</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/parent/reset-data</code></td><td>重置数据</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/encourage</code></td><td>发送鼓励</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/encourage</code></td><td>获取鼓励</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/random-surprise</code></td><td>随机惊喜(v3.1)</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/event/status</code></td><td>活动状态(v3.1)</td></tr>
+        <tr><td><span class="meth get">GET</span></td><td><code>/api/weekly-report</code></td><td>学习周报</td></tr>
+        <tr><td><span class="meth post">POST</span></td><td><code>/api/scheduler/run</code></td><td>定时任务(衰减/睡眠)</td></tr>
+      </table>
+    </section>
+
+    <!-- FRONTEND -->
+    <section id="frontend">
+      <h2><span class="n">⑤</span>前端结构 (index.html)</h2>
+      <p class="lead">单页 + 原生 JS，通过 <code>fetch</code> 调用后端。页面按 tab 分区，顶部倒计时，中央宠物，底部各类弹窗。v3.2 起 mood 显示由 <code>updateMoodDisplay</code> 轮询 <code>/api/pet/mood</code>。</p>
+      <div class="grid g3">
+        <div class="card"><h4>🌐 全局</h4><p>Jinja2 注入 <code>currentRole</code> <code>petStatus</code> <code>petCoins</code> <code>appearance.stage</code> <code>dragonImages[]</code> 等</p></div>
+        <div class="card"><h4>⏱️ 倒计时</h4><p>startCountdown() 21点前目标，进度条</p></div>
+        <div class="card"><h4>🐲 宠物区</h4><p>SVG/图片按 stage 渲染；摸头/挠痒/逗玩/喂食/算术题</p></div>
+        <div class="card"><h4>📚 作业 Tab</h4><p>selectSubject / showTaskModal / 完成日常+额外任务</p></div>
+        <div class="card"><h4>🏆 成就墙</h4><p>3列网格，新解锁金色闪光</p></div>
+        <div class="card"><h4>🛒 商店/钱包</h4><p>买装饰/喂零食、钱包交易记录+零花钱统计</p></div>
+        <div class="card"><h4>🧠 专注打卡</h4><p>10/20/30分钟圆环倒计时，每日≤3次</p></div>
+        <div class="card"><h4>👨 家长模式</h4><p>密码验证、布置任务、行为评价、零花钱审批、设置</p></div>
+        <div class="card"><h4>🎨 皮肤(v3.2)</h4><p>showSkinPanel / selectSkin / unlockSkin / loadSkinShop</p></div>
+        <div class="card"><h4>✏️ 改名(v3.2)</h4><p>showRenameModal / confirmRename</p></div>
+        <div class="card"><h4>🧮 算术题(v3.2)</h4><p>startMathQuiz / answerMathQuiz（100内加减）</p></div>
+        <div class="card"><h4>📊 周报</h4><p>Canvas 柱状图(作业/龙币/专注切换)</p></div>
+      </div>
+    </section>
+
+    <!-- FLOW -->
+    <section id="flow">
+      <h2><span class="n">⑥</span>核心数据流：完成作业</h2>
+      <p class="lead">一次“完成作业”如何串联起经验、龙币、进化、成就与状态。其余动作（喂食/互动/专注/商店）模式类似。</p>
+      <div class="flow">
+        <div class="step"><b>① 前端提交</b>POST /api/task/complete (subject)</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>② 防重 & 奖励</b>查今日是否已做；取 SUBJECT_REWARDS(数学双倍)</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>③ 写 tasks</b>插入完成记录；累加 exp/hunger/mood</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>④ 连续天数</b>streak / math_streak 按昨天判定</div>
+      </div>
+      <div class="flow">
+        <div class="step"><b>⑤ 龙币</b>add_coins(周末双倍+挑战赛+20)</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>⑥ 进化判定</b>calculate_evolution_stage 对比新旧阶段</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>⑦ 宝箱</b>数学60%/普通10% 触发称号/道具/经验卡</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>⑧ 成就</b>check_achievements 解锁</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>⑨ 返回</b>前端播放动画/粒子</div>
+      </div>
+      <div class="note ok">闭环原则：所有数值变更都经过单一函数（如 <code>add_coins</code>），并写入流水表，便于审计与回放。</div>
+    </section>
+
+    <!-- ROLES -->
+    <section id="roles">
+      <h2><span class="n">⑦</span>双角色模型</h2>
+      <p class="lead">同一页面，<code>?role=</code> 决定可见模块。家长模式额外需密码验证。</p>
+      <div class="role">
+        <div class="card kid"><h4><span class="dot" style="background:var(--brand2)"></span>👦 孩子端 (role=kid)</h4>
+          <ul class="tight">
+            <li>完成作业 / 额外任务（仅未过期+pending）</li>
+            <li>喂食、互动、专心打卡、算术题</li>
+            <li>商店买装饰/喂零食、查看钱包</li>
+            <li>看成就墙、今日正向行为评价</li>
+            <li>改名、换皮肤</li>
+          </ul></div>
+        <div class="card par"><h4><span class="dot" style="background:var(--brand)"></span>👨 家长端 (role=parent)</h4>
+          <ul class="tight">
+            <li>布置/删除额外任务、审批零花钱</li>
+            <li>行为评价（规则+自定义）</li>
+            <li>查看全部任务/今日行为记录</li>
+            <li>修改设置（汇率/周限额/放学时间/密码）</li>
+            <li>发送鼓励、重置数据</li>
+          </ul></div>
+      </div>
+    </section>
+
+    <!-- DEPLOY -->
+    <section id="deploy">
+      <h2><span class="n">⑧</span>部署架构</h2>
+      <p class="lead">Python 进程监听本地端口，由反向代理对外暴露（支持无域名公网 IP 直连）。</p>
+      <div class="flow">
+        <div class="step"><b>浏览器/手机</b>http(s)://公网IP</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>OpenResty/Nginx</b>反向代理 :80/:443 → :5000</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>uvicorn</b>FastAPI :5000</div>
+        <div class="arrow">→</div>
+        <div class="step"><b>SQLite</b>homework_pet.db (WAL)</div>
+      </div>
+      <h3>启动方式</h3>
+      <table class="tbl">
+        <tr><th>场景</th><th>命令 / 文件</th></tr>
+        <tr><td>本地开发</td><td><code>python app/run_local.py</code> → 127.0.0.1:5001</td></tr>
+        <tr><td>生产(Windows)</td><td><code>start_server.bat</code> → uvicorn :5000（2 workers）</td></tr>
+        <tr><td>Railway</td><td><code>Procfile</code> → <code>python app/main.py</code>（PORT 默认 5000）</td></tr>
+        <tr><td>服务托管</td><td>NSSM 注册为 Windows 服务，前置 OpenResty 反代</td></tr>
+      </table>
+      <div class="note">注意：<code>main.py</code> 末尾 <code>__main__</code> 用 <code>os.chdir(app目录)</code> 保证 SQLite 相对路径正确；必须在 <code>app/</code> 下运行。</div>
+    </section>
+
+    <!-- NOTES -->
+    <section id="notes">
+      <h2><span class="n">⑨</span>注意 & 技术债</h2>
+      <p class="lead">来自开发与运维中已确认的关键点（详见项目 MEMORY.md）。</p>
+      <div class="note">⚠️ <b>Jinja2 3.1.x 兼容：</b>必须用 <code>jinja2.Environment</code> 直接渲染，<code>Jinja2Templates</code> 会报 <code>unhashable type: 'dict'</code>。</div>
+      <div class="note">⚠️ <b>SQLite 不能调用 Python 函数：</b>SQL 中不可写 <code>level = calculate_level(?)</code>，须在 Python 端算好再传参。</div>
+      <div class="note">⚠️ <b>database is locked：</b>已用 WAL + busy_timeout=5000 解决；并发读写仍建议单 writer。</div>
+      <div class="note">⚠️ <b>科目三处必须一致：</b>DEFAULT_TASKS / get_today_tasks_summary / SUBJECT_REWARDS（语文/数学/英语/课外阅读/体育锻炼）。</div>
+      <div class="note ok">✅ 历史脚本 <code>main_new.py</code> / <code>implement_features.py</code> / <code>fix_main.py</code> 不参与运行，可归档或删除以免混淆。</div>
+      <div class="note ok">✅ 待做(V3.2+)：微信通知、装饰商店完善(帽子/背景/拖尾)、多孩子账号。</div>
+    </section>
+
+    <footer>作业小龙 项目地图 · 自动生成 · 数据来源：全量读取 app/main.py、app/database.py、index.html、DEPLOY.md、requirements.txt 等</footer>
+  </div>
+</div>
+</body>
+</html>
