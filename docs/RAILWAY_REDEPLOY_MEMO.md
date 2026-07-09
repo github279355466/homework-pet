@@ -1,19 +1,19 @@
-# 🚂 作业小龙 — Railway 重新部署备忘（v3.3 多宠物）
+# 🚂 作业小龙 - Railway 重新部署备忘（v3.3 多宠物）
 
-> 适用场景：代码已 push 到 GitHub（`github279355466/homework-pet`），但生产 URL 返回
-> `Application not found`，需要重连/重建 Railway 服务并正确启用多宠物数据。
-> 生成时间：2026-07-09
+> **当前状态（2026-07-09 更新）**: ✅ 已成功部署到 `https://homepet.up.railway.app/`。
+> 旧域名 `web-production-a9e82.up.railway.app` 已废弃（Railway 服务重建后子域名变更）。
+> 本备忘保留作为后续如需再次重建 Railway 服务的参考手册。
 
 ---
 
-## 0. 当前状态（先读这段，避免做无用功）
+## 0. 当前状态
 
 | 项 | 状态 |
 |----|------|
-| 本地 commit | ✅ 全部已在 `origin/main`（无未推送；含 v3.3 全 Phase + math_quiz/gacha/species 修复 + 立绘压缩 + Trellis 任务状态） |
-| GitHub 远端 | ✅ 代码 + 已迁移生产库 `app/homework_pet.db` + 35 张立绘（已压缩至 256×256）均已推送 |
-| 生产 URL `https://web-production-a9e82.up.railway.app/` | ⚠️ 返回 Railway 网关级 `{"status":"error","code":404,"message":"Application not found"}` |
-| 结论 | **push 成功，但线上没有运行实例**（子域名未绑定任何服务） |
+| 本地 commit | ✅ 全部已在 `origin/main` |
+| GitHub 远端 | ✅ 代码 + 已迁移生产库 + 35 张立绘均已推送 |
+| 生产 URL `https://homepet.up.railway.app/` | ✅ 200 OK，v3.3 多宠物系统已上线 |
+| 旧 URL `https://web-production-a9e82.up.railway.app/` | ❌ 已废弃（Railway 服务重建，子域名变更） |
 
 `Application not found` 是 Railway **平台网关**的报错（带 `request_id`），不是我们 app 自己的 404。
 含义：该子域名对应的服务**已被删除 / 重命名 / 从未成功构建**，不是代码问题。

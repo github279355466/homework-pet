@@ -1,12 +1,12 @@
 # 作业小龙 — Agent 项目指南
 
-> 当前版本：v3.3.0（多宠物系统；2026-07-09 全 Phase 完成并 push 至 main；Railway 部署 pending）
+> 当前版本：v3.3.0（多宠物系统；2026-07-09 全 Phase 完成并 push 至 main；Railway 已部署上线）
 
 ## 项目状态
 
 - **生产环境**：Railway（连 GitHub `github279355466/homework-pet` 自动构建）
-- **生产地址**：`https://web-production-a9e82.up.railway.app/`（⚠️ 当前返回 Application not found——Railway 服务未绑定，部署 pending；重连/重建步骤见 `docs/RAILWAY_REDEPLOY_MEMO.md`）
-- **数据库**：`app/homework_pet.db`（SQLite，已入库，含生产数据）
+- **生产地址**：`https://homepet.up.railway.app/`（2026-07-09 重建服务，旧域名 `web-production-a9e82.up.railway.app` 已废弃）
+- **数据库**：`app/homework_pet.db`（SQLite，已入库，含生产数据；v3.3 已迁移，含 pet_collection/species_catalog）
 - **本地开发**：`cd app && python run_local.py`（端口 5001）
 
 ## 重要约束

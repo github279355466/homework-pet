@@ -10,7 +10,7 @@
 | Windows 云服务器 | 自托管、内网部署 | `python app/main.py` 或 NSSM 服务 | 本地磁盘 |
 | 本地开发 | 调试 | `python app/run_local.py`（端口 5001） | 本地磁盘 |
 
-> 📌 **v3.3 多宠物已 push 至 `main`**：若生产 URL 返回 `Application not found`（服务未绑定），请先读 [docs/RAILWAY_REDEPLOY_MEMO.md](docs/RAILWAY_REDEPLOY_MEMO.md) 完成重连/重建，再继续下方步骤。多宠物数据已随提交的 `app/homework_pet.db` 迁移好，默认部署开箱即用。
+> 📌 **v3.3 多宠物已上线** `https://homepet.up.railway.app/`（2026-07-09 重建服务，旧域名 `web-production-a9e82.up.railway.app` 已废弃）。多宠物数据已随 `app/homework_pet.db` 提交并迁移完成，默认部署开箱即用。若需重新部署到新 Railway 项目，参考 [docs/RAILWAY_REDEPLOY_MEMO.md](docs/RAILWAY_REDEPLOY_MEMO.md)。
 
 ---
 

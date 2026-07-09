@@ -1,8 +1,8 @@
 # Trellis 项目导航 - homework-pet (作业小龙)
 
-> **版本**: v3.3.0 (开发中)
-> **更新**: 2026-07-08
-> **当前主线**: 多宠物系统改造 (feature/multi-pet-v3.3 分支)
+> **版本**: v3.3.0 (已上线)
+> **更新**: 2026-07-09
+> **当前主线**: v3.3 多宠物系统已部署 (https://homepet.up.railway.app)
 
 ---
 
@@ -10,7 +10,7 @@
 
 **作业小龙** 是一个面向小学生的作业打卡 + 宠物养成 Web 应用。
 - **技术栈**: FastAPI 0.109 + SQLite + Jinja2 单页前端
-- **生产环境**: Railway (https://web-production-a9e82.up.railway.app/)
+- **生产环境**: Railway (https://homepet.up.railway.app/)
 - **数据库**: `app/homework_pet.db` (生产 SQLite，含真实数据)
 - **启动命令**: `python app/main.py` (端口由 PORT 环境变量决定)
 
@@ -53,7 +53,7 @@ homework-pet/
 
 ### v3.3 多宠物系统 (2026-07-08 启动)
 
-**分支**: `feature/multi-pet-v3.3`
+**分支**: 已合并到 `main` (feature/multi-pet-v3.3 分支已删除)
 
 **目标**: 增加多宠物领养/切换功能
 - 混合模式: 金币/成就共享，饱腹/心情/经验/亲密度独立
@@ -68,7 +68,7 @@ homework-pet/
 - 实施计划: `docs/plans/2026-07-08-multi-pet-v3.3-plan.md` (69 个 Task)
 - Trellis 任务卡: `.trellis/tasks/2026-07/v3.3-multi-pet/`
 
-**进度**: 🟡 计划已确认，待 Codex 实施
+**进度**: ✅ 全部完成，已部署到 https://homepet.up.railway.app
 
 ## 多 Agent 协作约定
 
@@ -89,6 +89,10 @@ homework-pet/
 
 ## 下一动作
 
-👉 **Codex 从 Task 0.1 开始**: 备份生产 DB → 创建 feature 分支 → 按 Phase 顺序执行
+✅ **v3.3 多宠物系统已上线** https://homepet.up.railway.app
 
-详见: `.trellis/tasks/2026-07/v3.3-multi-pet/PRD.md`
+下一步待定（可选方向）：
+- 用户反馈收集 + 缺陷修复
+- 新物种/新皮肤扩展
+- 数据持久化迁移（如需 Volume 持久化）
+- 性能监控接入

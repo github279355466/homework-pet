@@ -193,7 +193,7 @@ python app\test_safe_regression.py
 - **Bug 修复**：手动发布任务金币上限 100（移除 HTML `max="100"` 和 JS `coinsReward > 100` 双重限制）
 - 秒悟平台改造评估：不支持 Python 后端，沙箱代码已保留但未走 CDN 部署
 
-### v3.3.0（2026-07-09，push 至 main，Railway 部署 pending）
+### v3.3.0（2026-07-09，多宠物系统上线，Railway 部署成功）
 - **多宠物系统**：单宠物 → 多宠物（龙/猫/兔/狐/独角兽/凤凰/熊猫），金币/成就/连续打卡全局共享，饱腹/心情/经验/亲密度按个体
 - 新增 `species_catalog` / `pet_collection` 两表 + `pet.active_pet_id`；`multi_pet.py` 镜像兼容层保证旧 `WHERE id=1` 不崩
 - 领养商店 / 扭蛋机（重复转 50% 龙币补偿）/ 签到发宠（每 7 次发熊猫）；`spend_coins()` 全局扣费
@@ -201,7 +201,7 @@ python app\test_safe_regression.py
 - 35 张 AI 物种立绘（7×5），压缩至 256×256（37MB→2.4MB）
 - **Bug 修复**：math_quiz 龙币流水双写（ab0f0bb）；新增 `GET /api/pets/gacha/config`、补全 `GET /api/pets/species` 的 `owned` 字段（34a32d1）
 - 生产库已增量迁移（紫宝=激活宠物），全部 commit 已 push 至 GitHub main
-- ⚠️ Railway 生产 URL 当前返回 Application not found，待重连/重建服务（见 `docs/RAILWAY_REDEPLOY_MEMO.md`）
+- ✅ v3.3 多宠物已上线：`https://homepet.up.railway.app/`（旧域名 `web-production-a9e82.up.railway.app` 已废弃， Railway 服务已重建）。多宠物数据已随提交的 `app/homework_pet.db` 迁移好，开箱即用。
 
 ### v3.2（2026-04-27）
 - 宠物改名功能（点击 ✏️ 输入新名字）

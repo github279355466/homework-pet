@@ -3,11 +3,11 @@
   "name_cn": "作业小龙",
   "version": "v3.3.0",
   "last_updated": "2026-07-09",
-  "status": "in-development",
+  "status": "deployed",
   "current_branch": "main",
   "production": {
     "platform": "Railway",
-    "url": "https://web-production-a9e82.up.railway.app/",
+    "url": "https://homepet.up.railway.app/",
     "github_repo": "github279355466/homework-pet",
     "auto_deploy_from": "main",
     "start_command": "python app/main.py",
@@ -35,7 +35,7 @@
     "id": "v3.3-multi-pet",
     "name": "多宠物系统改造",
     "started": "2026-07-08",
-    "status": "bugs-fixed-deploy-pending",
+    "status": "deployed",
     "owner": "codex",
     "branch": "main",
     "design_doc": "docs/multi-pet-design.md",
@@ -55,7 +55,9 @@
       ],
       "journal": ".trellis/workspace/liucb/journal-2.md",
       "fix_journal": ".trellis/workspace/liucb/journal-3.md",
-      "deploy_blocker": "Railway 生产 URL 返回 Application not found，服务未绑定/已被删；需在 Railway 面板重建或重连仓库后补 task 7.5 冒烟"
+      "deploy_blocker": null,
+      "deploy_url": "https://homepet.up.railway.app",
+      "deploy_note": "2026-07-09 已部署上线，旧域名 web-production-a9e82 已废弃"
     }
   },
   "databases": {
