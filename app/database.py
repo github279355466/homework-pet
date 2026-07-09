@@ -1,7 +1,10 @@
 import sqlite3
 import os
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
+
+logger = logging.getLogger("homework-pet")
 
 DEFAULT_DATABASE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "homework_pet.db")
 
@@ -18,6 +21,73 @@ def get_db_connection():
         pass
     conn.execute("PRAGMA busy_timeout=5000")
     return conn
+
+def _init_multi_pet_schema(cursor):
+    """多宠物架构（v3.3）增量建表 + 物种目录 seed（幂等，仅增不删，绝不 DROP/DELETE 业务数据）。"""
+    # ===== 物种目录表 =====
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS species_catalog (
+            id               TEXT    PRIMARY KEY,
+            name             TEXT    NOT NULL,
+            icon             TEXT    NOT NULL,
+            desc             TEXT,
+            base_price       INTEGER DEFAULT 0,
+            rarity           TEXT    DEFAULT 'common',
+            acquisition_methods TEXT,
+            stage_image_root TEXT,
+            stage_count      INTEGER DEFAULT 5,
+            sort_order       INTEGER DEFAULT 0,
+            enabled          INTEGER DEFAULT 1
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_species_catalog_enabled ON species_catalog(enabled)")
+
+    # ===== 宠物个体表（不含 level，等级由 exp 派生）=====
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pet_collection (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            species_id     TEXT    NOT NULL,
+            skin_id        TEXT    DEFAULT 'default',
+            name           TEXT    NOT NULL,
+            exp            INTEGER DEFAULT 0,
+            hunger         INTEGER DEFAULT 80,
+            mood           INTEGER DEFAULT 80,
+            bond           INTEGER DEFAULT 50,
+            status         TEXT    DEFAULT 'happy',
+            runaway_until  DATETIME,
+            acquired_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+            acquisition    TEXT    DEFAULT 'initial',
+            is_frozen      INTEGER DEFAULT 1,
+            last_decay_date DATETIME,
+            created_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_pet_collection_species ON pet_collection(species_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_pet_collection_frozen ON pet_collection(is_frozen)")
+
+    # ===== pet 表增量字段（幂等）=====
+    try:
+        cursor.execute("ALTER TABLE pet ADD COLUMN active_pet_id INTEGER")
+    except Exception:
+        pass
+
+    # ===== 物种目录初始数据（INSERT OR IGNORE 幂等）=====
+    _SEED_SPECIES = [
+        ('dragon',  '龙',     '\U0001F432', '经典陪伴小龙，初始伙伴',        0,   'common', 'initial',            '/static/species/dragon',  1),
+        ('cat',     '魔法猫', '\U0001F431', '灵动的魔法小猫',              80,  'common', 'shop',                '/static/species/cat',     2),
+        ('rabbit',  '月光兔', '\U0001F430', '沐浴月光的温柔兔子',          150, 'rare',   'shop,gacha',           '/static/species/rabbit',  3),
+        ('fox',     '九尾狐', '\U0001F42A', '神秘聪慧的九尾狐',            300, 'epic',   'gacha,achievement',    '/static/species/fox',     4),
+        ('unicorn', '独角兽', '\U0001F984', '纯洁高贵的解锁独角兽',        500, 'legend', 'achievement,gacha',    '/static/species/unicorn', 5),
+        ('phoenix', '凤凰',   '\U0001F525', '浴火重生的神鸟（成就专属）',    0,   'legend', 'achievement',         '/static/species/phoenix', 6),
+        ('panda',   '熊猫',   '\U0001F43C', '憨态可掬的熊猫',              120, 'rare',   'shop,signin',          '/static/species/panda',   7),
+    ]
+    for s in _SEED_SPECIES:
+        cursor.execute("""
+            INSERT OR IGNORE INTO species_catalog
+                (id, name, icon, desc, base_price, rarity, acquisition_methods, stage_image_root, sort_order)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, s)
+
 
 def init_db():
     """初始化数据库表"""
@@ -357,9 +427,26 @@ def init_db():
             existing = cursor.execute("SELECT key FROM parent_settings WHERE key = ?", (key,)).fetchone()
             if not existing:
                 cursor.execute("INSERT INTO parent_settings (key, value) VALUES (?, ?)", (key, val))
-    
+
+    # ===== 多宠物架构（v3.3）增量建表 + 物种目录 seed =====
+    _init_multi_pet_schema(cursor)
+
     conn.commit()
     conn.close()
+
+    # ===== 迁移（仅非生产路径或显式允许时执行，保护生产库不被自动改动）=====
+    try:
+        from multi_pet import migrate_single_to_multi_pet
+        db_url = get_database_url()
+        if db_url != DEFAULT_DATABASE_URL or os.environ.get("MULTI_PET_MIGRATE_PROD") == "1":
+            migrate_single_to_multi_pet(allow_production=(os.environ.get("MULTI_PET_MIGRATE_PROD") == "1"))
+        else:
+            logger.info(
+                "[init_db] 生产路径：跳过自动迁移"
+                "（设置 HOMEWORK_PET_DB_PATH 或 MULTI_PET_MIGRATE_PROD=1 可启用）"
+            )
+    except Exception:
+        logger.exception("[init_db] 迁移调用失败（已忽略）")
 
 # 初始化数据库
 init_db()

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import pytz
 
 from database import get_db_connection, init_db
+from multi_pet import get_active_pet_id, sync_active_pet_mirror, ACHIEVEMENT_PET_REWARDS
 
 # ===== 日志配置 =====
 logging.basicConfig(
@@ -338,7 +339,23 @@ def check_achievements(conn, streak, stage, math_streak=0, bond=50, total_focus_
                 WHERE id = ?
             """, (current_time.isoformat(), ach['id']))
             newly_unlocked.append({'name': ach['name'], 'icon': ach['icon'], 'description': ach['description']})
-    
+
+    # 成就解锁 → 自动发放对应宠物（同物种限 1 只，已拥有则跳过；发放为冻结态不打断激活宠物）
+    for ach in newly_unlocked:
+        species_id = ACHIEVEMENT_PET_REWARDS.get(ach['name'])
+        if not species_id:
+            continue
+        if conn.execute("SELECT 1 FROM pet_collection WHERE species_id = ?", (species_id,)).fetchone():
+            continue
+        sp = conn.execute("SELECT name FROM species_catalog WHERE id = ?", (species_id,)).fetchone()
+        default_name = sp['name'] if sp else species_id
+        conn.execute("""
+            INSERT INTO pet_collection
+                (species_id, skin_id, name, exp, hunger, mood, bond, status, acquisition, is_frozen)
+            VALUES (?, 'default', ?, 0, 80, 80, 50, 'happy', 'achievement', 1)
+        """, (species_id, default_name))
+        logger.info(f"[achievement] 自动发放宠物 {species_id}（成就：{ach['name']}）")
+
     return newly_unlocked
 
 # ===== 页面路由 =====
@@ -590,17 +607,24 @@ async def complete_task(
         VALUES (?, ?, 1, ?, ?, ?, ?)
     """, (task_type, subject, completed_by, current_time.isoformat(), exp_reward, today))
     
+    # 全局档案（pet id=1）— 金币/连续打卡等保持全局
     pet = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
     pet_dict = dict(pet)
-    
-    was_sleeping = pet_dict['status'] == 'sleeping'
-    logger.info(f"[task/complete] 宠物状态: status={pet_dict['status']}, coins={pet_dict['coins']}")
-    
-    new_exp = pet_dict['exp'] + exp_reward
-    old_stage = calculate_evolution_stage(pet_dict['exp'])
+
+    # 激活宠物的个体属性（pet_collection）— exp/饱腹/心情/亲密度独立
+    active_id = get_active_pet_id(conn)
+    active = conn.execute("SELECT * FROM pet_collection WHERE id = ?", (active_id,)).fetchone()
+    active_dict = dict(active) if active else {
+        'exp': 0, 'hunger': 80, 'mood': 80, 'status': 'happy', 'bond': 50, 'last_decay_date': None}
+
+    was_sleeping = active_dict['status'] == 'sleeping'
+    logger.info(f"[task/complete] 激活宠物状态: status={active_dict['status']}, 全局coins={pet_dict['coins']}")
+
+    new_exp = active_dict['exp'] + exp_reward
+    old_stage = calculate_evolution_stage(active_dict['exp'])
     new_stage = calculate_evolution_stage(new_exp)
-    new_hunger = min(100, pet_dict['hunger'] + hunger_reward)
-    new_mood = min(100, pet_dict['mood'] + mood_reward)
+    new_hunger = min(100, active_dict['hunger'] + hunger_reward)
+    new_mood = min(100, active_dict['mood'] + mood_reward)
     
     # 连续天数
     new_streak = pet_dict['streak']
@@ -643,15 +667,20 @@ async def complete_task(
         logger.info(f"[task/complete] 提前完成奖励: subject={subject}, bonus={early_bird_bonus}")
     
     new_level = calculate_level(new_exp)
+    # 个体属性写入 pet_collection（激活宠物）
     conn.execute("""
-        UPDATE pet SET exp = ?, level = ?, hunger = ?, mood = ?,
-            streak = ?, last_streak_date = ?,
-            math_streak = ?, last_math_date = ?,
-            status = 'happy', runaway_until = NULL, updated_at = ?
+        UPDATE pet_collection SET exp = ?, hunger = ?, mood = ?,
+            status = 'happy', runaway_until = NULL
+        WHERE id = ?
+    """, (new_exp, new_hunger, new_mood, active_id))
+    # 全局属性（连续打卡/数学连续）仍写 pet
+    conn.execute("""
+        UPDATE pet SET streak = ?, last_streak_date = ?,
+            math_streak = ?, last_math_date = ?, updated_at = ?
         WHERE id = 1
     """, (
-        new_exp, new_level, new_hunger, new_mood, new_streak, today,
-        new_math_streak, math_update.get('last_math_date', pet_dict.get('last_math_date')),
+        new_streak, today, new_math_streak,
+        math_update.get('last_math_date', pet_dict.get('last_math_date')),
         current_time.isoformat()
     ))
     
@@ -669,7 +698,10 @@ async def complete_task(
     # 检查成就
     total_focus = conn.execute("SELECT COALESCE(SUM(duration_minutes), 0) FROM focus_sessions").fetchone()[0]
     total_coins_earned = conn.execute("SELECT COALESCE(SUM(amount), 0) FROM coin_transactions WHERE type = 'earn'").fetchone()[0]
-    check_achievements(conn, new_streak, new_stage, new_math_streak, pet_dict.get('bond', 50), total_focus, total_coins_earned)
+    # 同步激活宠物 → pet 镜像（兼容旧 API）
+    sync_active_pet_mirror(conn)
+
+    check_achievements(conn, new_streak, new_stage, new_math_streak, active_dict.get('bond', 50), total_focus, total_coins_earned)
     
     conn.commit()
     
@@ -683,9 +715,10 @@ async def complete_task(
         conn.commit()
         treasure = reward
         if reward['type'] == 'exp_card':
-            conn.execute("UPDATE pet SET exp = exp + 20 WHERE id = 1")
+            conn.execute("UPDATE pet_collection SET exp = exp + 20 WHERE id = ?", (active_id,))
             new_exp += 20
             new_stage = calculate_evolution_stage(new_exp)
+            sync_active_pet_mirror(conn)
             conn.commit()
     
     conn.close()
@@ -719,18 +752,21 @@ async def feed_pet():
     """喂食"""
     conn = get_db_connection()
     current_time = get_current_time()
-    pet = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
-    
-    if pet['status'] == 'sleeping':
+    active_id = get_active_pet_id(conn)
+    active = conn.execute("SELECT * FROM pet_collection WHERE id = ?", (active_id,)).fetchone()
+    active_dict = dict(active) if active else {'hunger': 80, 'mood': 80, 'bond': 50, 'status': 'happy'}
+
+    if active_dict['status'] == 'sleeping':
         conn.close()
         return {"success": False, "message": "嘘...小龙正在睡觉，不要打扰它哦～"}
-    
-    new_hunger = min(100, pet['hunger'] + 30)
-    new_mood = min(100, pet['mood'] + 10)
-    new_bond = min(100, (dict(pet).get('bond') or 50) + 1)
-    
-    conn.execute("UPDATE pet SET hunger = ?, mood = ?, bond = ?, updated_at = ? WHERE id = 1",
-                 (new_hunger, new_mood, new_bond, current_time.isoformat()))
+
+    new_hunger = min(100, active_dict['hunger'] + 30)
+    new_mood = min(100, active_dict['mood'] + 10)
+    new_bond = min(100, (active_dict.get('bond') or 50) + 1)
+
+    conn.execute("UPDATE pet_collection SET hunger = ?, mood = ?, bond = ? WHERE id = ?",
+                 (new_hunger, new_mood, new_bond, active_id))
+    sync_active_pet_mirror(conn)
 
     # 检查成就（亲密度相关的成就）
     pet_after = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
@@ -752,13 +788,15 @@ async def pet_interact(interaction_type: str = Form("pat")):
     """宠物互动：pat/tickle/play"""
     conn = get_db_connection()
     current_time = get_current_time()
-    pet = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
-    
-    if pet['status'] == 'sleeping':
+    active_id = get_active_pet_id(conn)
+    active = conn.execute("SELECT * FROM pet_collection WHERE id = ?", (active_id,)).fetchone()
+    active_dict = dict(active) if active else {'mood': 80, 'bond': 50, 'status': 'happy'}
+
+    if active_dict['status'] == 'sleeping':
         conn.close()
         return {"success": False, "message": "嘘...小龙正在睡觉～"}
-    
-    bond = dict(pet).get('bond', 50)
+
+    bond = active_dict.get('bond', 50)
     
     if interaction_type == 'pat':
         bond_delta, mood_delta = 2, 1
@@ -774,10 +812,11 @@ async def pet_interact(interaction_type: str = Form("pat")):
         bubble = random.choice(['嗯？', '干嘛呀～', '嘿嘿'])
     
     new_bond = min(100, bond + bond_delta)
-    new_mood = min(100, pet['mood'] + mood_delta)
-    
-    conn.execute("UPDATE pet SET bond = ?, mood = ?, updated_at = ? WHERE id = 1",
-                 (new_bond, new_mood, current_time.isoformat()))
+    new_mood = min(100, active_dict['mood'] + mood_delta)
+
+    conn.execute("UPDATE pet_collection SET bond = ?, mood = ? WHERE id = ?",
+                 (new_bond, new_mood, active_id))
+    sync_active_pet_mirror(conn)
 
     # 记录互动次数（amount=0 不影响龙币，仅用于成就统计）
     conn.execute("""
@@ -812,6 +851,8 @@ async def rename_pet(name: str = Form(...)):
     if not name or len(name) > 20:
         return {"success": False, "message": "名字长度需在1-20个字符之间"}
     conn = get_db_connection()
+    active_id = get_active_pet_id(conn)
+    conn.execute("UPDATE pet_collection SET name = ? WHERE id = ?", (name, active_id))
     conn.execute("UPDATE pet SET name = ?, updated_at = ? WHERE id = 1",
                  (name, get_current_time().isoformat()))
     conn.commit()
@@ -1827,11 +1868,16 @@ async def scheduler_check():
     
     pet = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
     pet_dict = dict(pet)
-    
-    # 睡眠结束自动唤醒
-    if pet_dict['status'] == 'sleeping' and pet_dict.get('runaway_until'):
+
+    # 仅对激活宠物（未冻结）做个体状态处理
+    active_id = get_active_pet_id(conn)
+    active_row = conn.execute("SELECT * FROM pet_collection WHERE id = ? AND is_frozen = 0", (active_id,)).fetchone()
+    active = dict(active_row) if active_row else None
+
+    # 睡眠结束自动唤醒（仅激活宠物）
+    if active and active['status'] == 'sleeping' and active.get('runaway_until'):
         try:
-            sleep_end_str = pet_dict['runaway_until']
+            sleep_end_str = active['runaway_until']
             if sleep_end_str.endswith('+00:00') or '+' in sleep_end_str:
                 from datetime import timezone
                 sleep_end = datetime.fromisoformat(sleep_end_str)
@@ -1842,36 +1888,37 @@ async def scheduler_check():
                 sleep_end = datetime.fromisoformat(sleep_end_str)
                 if sleep_end.tzinfo is None:
                     sleep_end = tz.localize(sleep_end)
-            
+
             if sleep_end < current_time:
                 conn.execute("""
-                    UPDATE pet SET status = 'normal', runaway_until = NULL, mood = 40, hunger = 40
-                    WHERE id = 1
-                """)
+                    UPDATE pet_collection SET status = 'normal', runaway_until = NULL, mood = 40, hunger = 40
+                    WHERE id = ?
+                """, (active_id,))
                 conn.commit()
-                logger.info(f"[scheduler] 小龙睡眠结束，自动唤醒 (sleep_end={sleep_end})")
+                logger.info(f"[scheduler] 激活宠物睡眠结束，自动唤醒 (sleep_end={sleep_end})")
         except Exception as e:
             logger.error(f"[scheduler] 检查睡眠结束时间出错: {e}")
+
+    # 重新获取激活宠物状态（可能已唤醒）
+    if active_id:
+        active = conn.execute("SELECT * FROM pet_collection WHERE id = ?", (active_id,)).fetchone()
+        active = dict(active) if active else None
     
-    # 重新获取宠物状态（可能已唤醒）
-    pet = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
-    pet_dict = dict(pet)
-    
-    # 21点没完成作业 → 宠物睡觉（仅当 status 不是 sleeping 时）
-    if pet_dict['status'] != 'sleeping' and today_tasks['cnt'] == 0 and current_time.hour >= 21:
+    # 21点没完成作业 → 激活宠物睡觉（仅当 status 不是 sleeping 且存在激活宠物）
+    if active and active['status'] != 'sleeping' and today_tasks['cnt'] == 0 and current_time.hour >= 21:
         sleep_until = current_time + timedelta(hours=8)
         conn.execute("""
-            UPDATE pet SET status = 'sleeping', runaway_until = ?,
+            UPDATE pet_collection SET status = 'sleeping', runaway_until = ?,
                 hunger = max(0, hunger - 15), mood = max(0, mood - 20),
                 bond = max(0, bond - 3)
-            WHERE id = 1
-        """, (sleep_until.isoformat(),))
+            WHERE id = ?
+        """, (sleep_until.isoformat(), active_id))
         conn.commit()
-        logger.info(f"[scheduler] 21点无作业完成，小龙进入睡眠，预计 {sleep_until.strftime('%H:%M')} 醒来")
+        logger.info(f"[scheduler] 21点无作业完成，激活宠物进入睡眠，预计 {sleep_until.strftime('%H:%M')} 醒来")
     
-    # 实时衰减：按真实经过时间累计，饱腹低于 30 后自动放慢，避免快速归零
-    if pet_dict['status'] != 'sleeping':
-        last_decay = pet_dict.get('last_decay_date')
+    # 实时衰减：仅对激活宠物；冻结宠物不衰减
+    if active and active['status'] != 'sleeping':
+        last_decay = active.get('last_decay_date')
         decay_time = None
         if last_decay is None:
             decay_time = current_time
@@ -1893,22 +1940,22 @@ async def scheduler_check():
         hours_diff = max(0, (current_time - decay_time).total_seconds() / 3600) if decay_time else 0
         if hours_diff >= 0.1:
             decayed = calculate_realtime_decay({
-                'hunger': pet_dict['hunger'],
-                'mood': pet_dict['mood'],
-                'bond': pet_dict.get('bond', 50),
+                'hunger': active['hunger'],
+                'mood': active['mood'],
+                'bond': active.get('bond', 50),
             }, hours_diff)
             conn.execute("""
-                UPDATE pet SET hunger = ?, mood = ?, bond = ?, last_decay_date = ?
-                WHERE id = 1
-            """, (decayed['hunger'], decayed['mood'], decayed['bond'], current_time.isoformat()))
+                UPDATE pet_collection SET hunger = ?, mood = ?, bond = ?, last_decay_date = ?
+                WHERE id = ?
+            """, (decayed['hunger'], decayed['mood'], decayed['bond'], current_time.isoformat(), active_id))
             logger.info(
-                f"[scheduler] 实时衰减执行: hours={hours_diff:.2f}, "
-                f"hunger {pet_dict['hunger']}->{decayed['hunger']}, "
-                f"mood {pet_dict['mood']}->{decayed['mood']}, "
-                f"bond {pet_dict.get('bond', 50)}->{decayed['bond']}"
+                f"[scheduler] 激活宠物实时衰减: hours={hours_diff:.2f}, "
+                f"hunger {active['hunger']}->{decayed['hunger']}, "
+                f"mood {active['mood']}->{decayed['mood']}, "
+                f"bond {active.get('bond', 50)}->{decayed['bond']}"
             )
         elif last_decay is None:
-            conn.execute("UPDATE pet SET last_decay_date = ? WHERE id = 1", (current_time.isoformat(),))
+            conn.execute("UPDATE pet_collection SET last_decay_date = ? WHERE id = ?", (current_time.isoformat(), active_id))
     
     # 重置每日数学挑战赛标记（每天0点重置）
     if pet_dict.get('math_challenge_today', 0) > 0 and pet_dict.get('last_math_date') != today:
@@ -1922,7 +1969,10 @@ async def scheduler_check():
     
     # 清理过期鼓励消息
     conn.execute("DELETE FROM encourage WHERE expires_at < ?", (current_time.isoformat(),))
-    
+
+    # 同步激活宠物 → pet 镜像（兼容旧 API）
+    sync_active_pet_mirror(conn)
+
     conn.commit()
     conn.close()
     
@@ -1984,11 +2034,14 @@ PET_SKINS = {
 async def get_pet_skins():
     """获取所有可用皮肤"""
     conn = get_db_connection()
+    # 当前皮肤取「激活宠物」的个体 skin_id（旧 current_skin 仅作兜底）
+    active_id = get_active_pet_id(conn)
+    active = conn.execute("SELECT skin_id, exp FROM pet_collection WHERE id = ?", (active_id,)).fetchone()
     current_skin = conn.execute("SELECT value FROM parent_settings WHERE key = 'current_skin'").fetchone()
-    current = current_skin['value'] if current_skin else 'default'
+    current = (active['skin_id'] if active and active['skin_id'] else
+               (current_skin['value'] if current_skin else 'default'))
     unlocked_row = conn.execute("SELECT value FROM parent_settings WHERE key = 'unlocked_skins'").fetchone()
-    pet = conn.execute("SELECT exp FROM pet WHERE id = 1").fetchone()
-    current_stage = calculate_evolution_stage(pet['exp']) if pet else 0
+    current_stage = calculate_evolution_stage(active['exp']) if active else 0
     conn.close()
 
     unlocked = set(unlocked_row['value'].split(',')) if unlocked_row and unlocked_row['value'] else {'default'}
@@ -2022,6 +2075,10 @@ async def select_pet_skin(skin_id: str = Form(...)):
         conn.execute("UPDATE parent_settings SET value = ? WHERE key = 'current_skin'", (skin_id,))
     else:
         conn.execute("INSERT INTO parent_settings (key, value) VALUES ('current_skin', ?)", (skin_id,))
+    # 写入选中的皮肤到「激活宠物」个体（skin_id 个体化）
+    active_id = get_active_pet_id(conn)
+    if active_id:
+        conn.execute("UPDATE pet_collection SET skin_id = ? WHERE id = ?", (skin_id, active_id))
     conn.commit()
     conn.close()
     return {"success": True, "message": f"已切换为{PET_SKINS[skin_id]['name']}！"}
@@ -2054,6 +2111,10 @@ async def unlock_pet_skin(skin_id: str = Form(...)):
         conn.execute("UPDATE parent_settings SET value = ? WHERE key = 'current_skin'", (skin_id,))
     else:
         conn.execute("INSERT INTO parent_settings (key, value) VALUES ('current_skin', ?)", (skin_id,))
+    # 解锁后自动选为「激活宠物」个体皮肤（skin_id 个体化）
+    active_id = get_active_pet_id(conn)
+    if active_id:
+        conn.execute("UPDATE pet_collection SET skin_id = ? WHERE id = ?", (skin_id, active_id))
     conn.commit()
     conn.close()
     return {"success": True, "message": f"解锁成功！获得{PET_SKINS[skin_id]['name']}", "new_coins": pet['coins'] - price}
@@ -2132,6 +2193,146 @@ async def answer_math_quiz(answer: int = Form(...), correct_answer: int = Form(.
         "bond": new_bond,
         "bubble": bubble,
     }
+
+# ===== v3.3 多宠物核心 API =====
+
+@app.get("/api/pets")
+async def list_pets():
+    """获取全部宠物列表（含物种信息、emoji、激活态）。前端卡片轮播可用。"""
+    conn = get_db_connection()
+    active_id = get_active_pet_id(conn)
+    rows = conn.execute("SELECT * FROM pet_collection ORDER BY id").fetchall()
+    species_map = {}
+    for s in conn.execute("SELECT * FROM species_catalog").fetchall():
+        species_map[s['id']] = dict(s)
+    pet = conn.execute("SELECT coins, streak, math_streak FROM pet WHERE id = 1").fetchone()
+    pet_dict = dict(pet) if pet else {'coins': 0, 'streak': 0, 'math_streak': 0}
+    conn.close()
+
+    pets = []
+    for r in rows:
+        d = dict(r)
+        sp = species_map.get(d['species_id'], {})
+        stage = calculate_evolution_stage(d['exp'])
+        pets.append({
+            'id': d['id'],
+            'species_id': d['species_id'],
+            'species_name': sp.get('name', d['species_id']),
+            'icon': sp.get('icon', '🐾'),
+            'name': d['name'],
+            'exp': d['exp'],
+            'level': calculate_level(d['exp']),
+            'hunger': d['hunger'],
+            'mood': d['mood'],
+            'bond': d['bond'],
+            'status': d['status'],
+            'skin_id': d.get('skin_id', 'default'),
+            'acquisition': d.get('acquisition', 'unknown'),
+            'acquired_at': d.get('acquired_at'),
+            'is_frozen': d.get('is_frozen', 1),
+            'is_active': d['id'] == active_id,
+            'image': f"/static/species/{d['species_id']}/stage-{stage}.png",
+        })
+    return {"pets": pets, "active_pet_id": active_id, "count": len(pets),
+            "coins": pet_dict.get('coins', 0), "streak": pet_dict.get('streak', 0),
+            "math_streak": pet_dict.get('math_streak', 0)}
+
+@app.get("/api/pets/active")
+async def get_active_pet():
+    """获取激活宠物的完整状态（兼容旧 /api/pet 字段，可复用 get_pet 镜像语义）。"""
+    conn = get_db_connection()
+    active_id = get_active_pet_id(conn)
+    active = conn.execute("SELECT * FROM pet_collection WHERE id = ?", (active_id,)).fetchone()
+    if not active:
+        conn.close()
+        return {"error": "无激活宠物"}
+    active_dict = dict(active)
+    sp = conn.execute("SELECT * FROM species_catalog WHERE id = ?", (active_dict['species_id'],)).fetchone()
+    pet = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
+    pet_dict = dict(pet) if pet else {}
+    current_skin_id = active_dict.get('skin_id', 'default')
+    appearance = get_pet_appearance(active_dict['exp'], active_dict['status'], active_dict.get('bond', 50), current_skin_id)
+    appearance['image'] = f"/static/species/{active_dict['species_id']}/stage-{appearance['stage']}.png"
+    sleeping_info = None
+    if active_dict['status'] == 'sleeping':
+        sleeping_info = {"status": "sleeping", "runaway_until": active_dict.get('runaway_until')}
+    conn.close()
+    return {
+        "pet": active_dict,
+        "pet_id": active_id,
+        "species": dict(sp) if sp else None,
+        "level": calculate_level(active_dict['exp']),
+        "appearance": appearance,
+        "sleeping_info": sleeping_info,
+        "coins": pet_dict.get('coins', 0),
+        "streak": pet_dict.get('streak', 0),
+        "math_streak": pet_dict.get('math_streak', 0),
+        "skin_id": current_skin_id,
+        "is_active": True,
+    }
+
+@app.post("/api/pets/switch")
+async def switch_pet(pet_id: int = Form(...)):
+    """切换激活宠物（冻结式）：冻结旧激活、激活新宠物、更新指针、同步镜像。"""
+    conn = get_db_connection()
+    target = conn.execute("SELECT * FROM pet_collection WHERE id = ?", (pet_id,)).fetchone()
+    if not target:
+        conn.close()
+        return {"success": False, "message": "宠物不存在"}
+    target_dict = dict(target)
+    old_active = get_active_pet_id(conn)
+    if old_active and old_active != pet_id:
+        conn.execute("UPDATE pet_collection SET is_frozen = 1 WHERE id = ?", (old_active,))
+    conn.execute("UPDATE pet_collection SET is_frozen = 0, last_decay_date = ? WHERE id = ?",
+                 (get_current_time().isoformat(), pet_id))
+    conn.execute("UPDATE pet SET active_pet_id = ? WHERE id = 1", (pet_id,))
+    sync_active_pet_mirror(conn)
+    conn.commit()
+    conn.close()
+    return {"success": True, "message": f"已切换为{target_dict['name']}！", "pet_id": pet_id}
+
+@app.post("/api/pets/{pet_id}/rename")
+async def rename_pet_by_id(pet_id: int, name: str = Form(...)):
+    """重命名指定宠物；若激活则同步回写 pet.name。"""
+    name = name.strip()
+    if not name or len(name) > 20:
+        return {"success": False, "message": "名字长度需在1-20个字符之间"}
+    conn = get_db_connection()
+    target = conn.execute("SELECT * FROM pet_collection WHERE id = ?", (pet_id,)).fetchone()
+    if not target:
+        conn.close()
+        return {"success": False, "message": "宠物不存在"}
+    conn.execute("UPDATE pet_collection SET name = ? WHERE id = ?", (name, pet_id))
+    # 若激活，回写 pet.name 镜像
+    if get_active_pet_id(conn) == pet_id:
+        conn.execute("UPDATE pet SET name = ? WHERE id = 1", (name,))
+    conn.commit()
+    conn.close()
+    return {"success": True, "message": f"宠物新名字「{name}」已生效！", "pet_id": pet_id, "name": name}
+
+@app.get("/api/pets/species")
+async def get_pet_species():
+    """获取物种目录（enabled=1）。"""
+    conn = get_db_connection()
+    rows = conn.execute("SELECT * FROM species_catalog WHERE enabled = 1 ORDER BY sort_order").fetchall()
+    conn.close()
+    species = []
+    for r in rows:
+        d = dict(r)
+        species.append({
+            'id': d['id'],
+            'name': d['name'],
+            'icon': d['icon'],
+            'desc': d.get('desc', ''),
+            'base_price': d.get('base_price', 0),
+            'rarity': d.get('rarity', 'common'),
+            'acquisition_methods': d.get('acquisition_methods', ''),
+            'stage_image_root': d.get('stage_image_root', ''),
+            'stage_count': d.get('stage_count', 5),
+            'sort_order': d.get('sort_order', 0),
+            'enabled': d.get('enabled', 1),
+        })
+    return {"species": species}
 
 # ===== 启动 =====
 
