@@ -513,6 +513,26 @@ async def home(request: Request, role: str = "kid"):
     except Exception:
         pass
 
+    # v3.3 多宠物：确定激活宠物的物种，供前端选择渲染路径。
+    # dragon 走原有 dragon-skins 立绘；其余物种走 /static/species/{id}/stage-{stage}.png，
+    # 前端在图片缺失时回退到物种 icon（emoji），保证不破图。
+    active_species_id = 'dragon'
+    active_species_icon = '\U0001F432'  # 🐉 龙
+    try:
+        _aid = get_active_pet_id(conn)
+        _act = conn.execute("SELECT species_id FROM pet_collection WHERE id = ?", (_aid,)).fetchone()
+        if _act:
+            active_species_id = _act['species_id']
+        _sp = conn.execute("SELECT icon FROM species_catalog WHERE id = ?", (active_species_id,)).fetchone()
+        if _sp and _sp['icon']:
+            active_species_icon = _sp['icon']
+    except Exception:
+        pass
+    _active_stage = calculate_evolution_stage(pet_dict['exp'])
+    species_id = active_species_id
+    species_icon = active_species_icon
+    species_image = f"/static/species/{active_species_id}/stage-{_active_stage}.png"
+
     conn.close()
 
     appearance = get_pet_appearance(pet_dict['exp'], pet_dict['status'], pet_dict.get('bond', 50), current_skin_id)
@@ -526,6 +546,9 @@ async def home(request: Request, role: str = "kid"):
         "svg_info": svg_info,
         "skin_filter": skin_filter,
         "skin_stage_image": skin_stage_image,
+        "species_id": species_id,
+        "species_image": species_image,
+        "species_icon": species_icon,
         "tasks": tasks,
         "achievements": [dict(a) for a in achievements],
         "role": role,

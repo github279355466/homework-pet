@@ -1161,6 +1161,167 @@
     .skin-card .card-name { font-size: 12px; font-weight: 600; color: #2D3436; }
     .skin-card .card-desc { font-size: 9px; color: #aaa; margin-top: 2px; }
 
+    /* ===== v3.3 多宠物：emoji 兜底层 ===== */
+    .species-emoji-fallback {
+      position: absolute; inset: 0;
+      display: none;            /* 图片正常时隐藏，图片 404 时由 onerror 显示 */
+      align-items: center; justify-content: center;
+      font-size: 96px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
+    }
+
+    /* ===== v3.3 多宠物：我的宠物轮播 ===== */
+    .mp-carousel {
+      background: linear-gradient(135deg, #a29bfe, #6C5CE7);
+      border-radius: 22px; padding: 12px 12px 14px; margin-bottom: 14px;
+      color: #fff; box-shadow: 0 8px 24px rgba(108,92,231,0.3);
+    }
+    .mp-carousel-head {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+    }
+    .mp-carousel-title { font-size: 16px; font-weight: 800; flex: 1; }
+    .mp-carousel-coins {
+      background: rgba(255,255,255,0.2); border-radius: 14px; padding: 3px 10px;
+      font-size: 13px; font-weight: 700;
+    }
+    .mp-carousel-switch {
+      border: none; background: #FFD700; color: #5b4b00; font-weight: 800;
+      border-radius: 14px; padding: 5px 12px; font-size: 13px; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(255,215,0,0.4); transition: transform 0.15s;
+    }
+    .mp-carousel-switch:active { transform: scale(0.92); }
+    .mp-carousel-row { display: flex; align-items: center; gap: 6px; }
+    .mp-arrow {
+      flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%;
+      border: none; background: rgba(255,255,255,0.25); color: #fff;
+      font-size: 20px; line-height: 1; cursor: pointer; transition: background 0.15s;
+    }
+    .mp-arrow:active { background: rgba(255,255,255,0.45); }
+    .mp-carousel-track {
+      flex: 1; display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px;
+      scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+    }
+    .mp-carousel-track::-webkit-scrollbar { height: 5px; }
+    .mp-carousel-track::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 4px; }
+    .mp-carousel-loading { color: rgba(255,255,255,0.85); font-size: 13px; padding: 14px; }
+    .mp-card {
+      flex: 0 0 auto; width: 88px; border-radius: 16px; padding: 8px 6px 6px;
+      background: rgba(255,255,255,0.95); color: #2D3436; text-align: center;
+      position: relative; cursor: pointer; transition: transform 0.15s; border: 2px solid transparent;
+    }
+    .mp-card:active { transform: scale(0.94); }
+    .mp-card.active { border-color: #FFD700; box-shadow: 0 0 0 3px rgba(255,215,0,0.5); }
+    .mp-card-img {
+      width: 56px; height: 56px; object-fit: contain; margin: 0 auto 2px;
+      border-radius: 12px; background: #f3f1ff; display: flex; align-items: center; justify-content: center;
+      font-size: 40px;
+    }
+    .mp-card-name { font-size: 12px; font-weight: 700; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mp-card-lv { font-size: 10px; color: #8a7fe0; font-weight: 700; }
+    .mp-card-badge {
+      position: absolute; top: -6px; left: -6px; background: #FFD700; color: #5b4b00;
+      font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* ===== v3.3 多宠物：入口工具栏 ===== */
+    .mp-toolbar {
+      display: flex; gap: 8px; margin-bottom: 14px;
+    }
+    .mp-tool-btn {
+      flex: 1; border: none; border-radius: 16px; padding: 12px 4px;
+      font-size: 13px; font-weight: 800; color: #fff; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12); transition: transform 0.15s;
+    }
+    .mp-tool-btn:active { transform: scale(0.94); }
+    .mp-tool-btn::first-line { font-size: 22px; }
+    .mp-adopt { background: linear-gradient(135deg, #55EFC4, #00B894); }
+    .mp-gacha { background: linear-gradient(135deg, #FDA7DF, #D980FA); }
+    .mp-switch { background: linear-gradient(135deg, #74B9FF, #0984E3); }
+    .mp-signin { background: linear-gradient(135deg, #FDCB6E, #E17055); }
+
+    /* ===== v3.3 多宠物：弹窗内通用组件 ===== */
+    .mp-section { padding: 14px 18px 18px; }
+    .mp-sub { font-size: 13px; color: #888; margin: 4px 2px 12px; }
+    .mp-shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mp-shop-card {
+      background: #f8f9fb; border-radius: 16px; padding: 12px 10px; text-align: center;
+      border: 2px solid transparent; position: relative;
+    }
+    .mp-shop-card.owned { background: #f0f0f3; opacity: 0.85; }
+    .mp-shop-emoji {
+      width: 60px; height: 60px; margin: 0 auto 6px; border-radius: 14px;
+      background: #fff; display: flex; align-items: center; justify-content: center; font-size: 42px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .mp-shop-name { font-size: 13px; font-weight: 800; color: #2D3436; }
+    .mp-shop-rarity { font-size: 10px; font-weight: 700; margin: 2px 0 6px; }
+    .mp-rarity-common { color: #95a5a6; }
+    .mp-rarity-rare { color: #0984E3; }
+    .mp-rarity-epic { color: #9B59B6; }
+    .mp-rarity-legend { color: #E17055; }
+    .mp-shop-price { font-size: 12px; font-weight: 700; color: #F0A500; margin-bottom: 8px; }
+    .mp-adopt-btn {
+      width: 100%; border: none; border-radius: 12px; padding: 8px;
+      font-size: 13px; font-weight: 800; cursor: pointer; background: #00B894; color: #fff;
+      transition: transform 0.15s;
+    }
+    .mp-adopt-btn:active { transform: scale(0.96); }
+    .mp-adopt-btn:disabled { background: #cfd6e0; color: #fff; cursor: not-allowed; }
+    .mp-owned-tag { font-size: 12px; font-weight: 800; color: #8a7fe0; }
+
+    .mp-switch-list { display: flex; flex-direction: column; gap: 8px; }
+    .mp-switch-item {
+      display: flex; align-items: center; gap: 12px; background: #f8f9fb;
+      border-radius: 14px; padding: 10px 12px; cursor: pointer; border: 2px solid transparent;
+      transition: transform 0.15s;
+    }
+    .mp-switch-item:active { transform: scale(0.98); }
+    .mp-switch-item.active { border-color: #FFD700; background: #FFF8E1; }
+    .mp-switch-emoji {
+      width: 48px; height: 48px; border-radius: 12px; background: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 32px; flex: 0 0 auto;
+    }
+    .mp-switch-info { flex: 1; text-align: left; }
+    .mp-switch-name { font-size: 14px; font-weight: 800; color: #2D3436; }
+    .mp-switch-meta { font-size: 11px; color: #999; }
+    .mp-switch-go { font-size: 13px; font-weight: 800; color: #6C5CE7; }
+    .mp-switch-item.active .mp-switch-go { color: #F0A500; }
+
+    .mp-gacha-stage { text-align: center; padding: 16px 0 8px; }
+    .mp-gacha-machine { font-size: 72px; animation: gacha-idle 2.5s ease-in-out infinite; }
+    @keyframes gacha-idle { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(3deg); } }
+    .mp-gacha-machine.shaking { animation: gacha-shake 0.5s ease-in-out 4; }
+    @keyframes gacha-shake {
+      0%,100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); }
+    }
+    .mp-gacha-coin { font-size: 14px; font-weight: 700; color: #F0A500; margin-bottom: 10px; }
+    .mp-gacha-cost { font-size: 13px; color: #888; margin-bottom: 14px; }
+    .mp-gacha-btn {
+      width: 100%; border: none; border-radius: 16px; padding: 14px;
+      font-size: 16px; font-weight: 800; color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, #FDA7DF, #D980FA); box-shadow: 0 4px 16px rgba(217,128,250,0.4);
+      transition: transform 0.15s;
+    }
+    .mp-gacha-btn:active { transform: scale(0.96); }
+    .mp-gacha-btn:disabled { background: #cfd6e0; box-shadow: none; cursor: not-allowed; }
+
+    .mp-result { text-align: center; padding: 10px 4px; }
+    .mp-result-emoji {
+      width: 96px; height: 96px; margin: 0 auto 12px; border-radius: 20px; background: #f3f1ff;
+      display: flex; align-items: center; justify-content: center; font-size: 64px;
+    }
+    .mp-result-emoji img { width: 100%; height: 100%; object-fit: contain; border-radius: 20px; }
+    .mp-result-title { font-size: 20px; font-weight: 800; color: #2D3436; margin-bottom: 6px; }
+    .mp-result-desc { font-size: 14px; color: #666; margin-bottom: 16px; line-height: 1.5; }
+    .mp-result-btn {
+      border: none; border-radius: 16px; padding: 12px 32px; font-size: 15px; font-weight: 800;
+      color: #fff; cursor: pointer; background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+      box-shadow: 0 4px 16px rgba(108,92,231,0.4);
+    }
+    .mp-coin-pop { animation: mp-pop 0.4s cubic-bezier(.4,2,.6,1); }
+    @keyframes mp-pop { 0% { transform: scale(0.5); opacity: 0; } 60% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+
 </style>
 </head>
 <body>
@@ -1356,6 +1517,22 @@
 
 <div class="page-wrap">
 
+  <!-- ===== 我的宠物 轮播（v3.3 多宠物） ===== -->
+  <div class="mp-carousel" id="mpCarousel">
+    <div class="mp-carousel-head">
+      <span class="mp-carousel-title">🐾 我的宠物</span>
+      <span class="mp-carousel-coins">🪙 <span id="mpCoinNum">{{ dict(pet).get('coins', 0) }}</span></span>
+      <button class="mp-carousel-switch" onclick="showSwitchModal()" title="切换宠物">🔄 换一只</button>
+    </div>
+    <div class="mp-carousel-row">
+      <button class="mp-arrow" onclick="mpScroll(-1)" aria-label="上一个">‹</button>
+      <div class="mp-carousel-track" id="mpCarouselTrack">
+        <div class="mp-carousel-loading">加载中…</div>
+      </div>
+      <button class="mp-arrow" onclick="mpScroll(1)" aria-label="下一个">›</button>
+    </div>
+  </div>
+
   <!-- ===== 宠物卡片 ===== -->
   <div class="pet-card">
     <div class="pet-header">
@@ -1391,11 +1568,22 @@
           <div class="pet-avatar" id="petAvatar">
             <!-- v3.1 心情气泡占位 -->
             <div class="mood-bubble" id="moodBubble" style="display:none;"></div>
+            {% if species_id == 'dragon' %}
+            <!-- 龙：沿用原有 dragon-skins 立绘路径 -->
             <div class="dragon-svg-wrap dragon-stage-{{ appearance.stage }}">
               <img src="{{ skin_stage_image }}" alt="{{ appearance.stage_name }}"
                 onerror="this.onerror=null;this.src='/static/dragon-references/Stage%20{{ appearance.stage }}%20{{ appearance.stage_name }}.jpeg';this.style.filter='{{ skin_filter }}';"
                 style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
             </div>
+            {% else %}
+            <!-- 多宠物物种：立绘 + emoji 兜底（图片缺失时显示物种图标，不破图） -->
+            <span class="species-emoji-fallback" id="emojiFallback">{{ species_icon }}</span>
+            <div class="dragon-svg-wrap dragon-stage-{{ appearance.stage }}">
+              <img src="{{ species_image }}" alt="{{ appearance.stage_name }}"
+                onerror="this.style.display='none';var ef=document.getElementById('emojiFallback');if(ef){ef.style.display='flex';}"
+                style="width:100%;height:100%;object-fit:contain;border-radius:16px;">
+            </div>
+            {% endif %}
             {% if encourage %}
             <div class="encourage-bubble" onclick="showEncourage(event)">💌</div>
             {% endif %}
@@ -1458,6 +1646,14 @@
         <div class="attr-coin">🪙 {{ dict(pet).get('coins', 0) }}</div>
       </div>
     </div>
+  </div>
+
+  <!-- ===== 宠物中心入口（v3.3 多宠物：领养 / 扭蛋 / 切换 / 签到） ===== -->
+  <div class="mp-toolbar">
+    <button class="mp-tool-btn mp-adopt" onclick="showAdoptShop()">🛒 领养中心</button>
+    <button class="mp-tool-btn mp-gacha" onclick="showGachaPanel()">🎰 扭蛋机</button>
+    <button class="mp-tool-btn mp-switch" onclick="showSwitchModal()">🔄 切换</button>
+    <button class="mp-tool-btn mp-signin" onclick="doSignin()">📅 签到</button>
   </div>
 
   <!-- ===== 主内容卡片 ===== -->
@@ -3287,6 +3483,277 @@ function showSurprisePopup(surprise) {
     }, i * 100);
   }
 }
+</script>
+
+<!-- ===== v3.3 多宠物前端逻辑（轮播 / 切换 / 领养 / 扭蛋 / 签到） ===== -->
+<script>
+// 通用：打开一个 wallet 风格弹窗（复用现有 .wallet-overlay / .wallet-popup 样式）
+function openMpModal(title, bodyHtml, id) {
+  if (id) { var ex = document.getElementById(id); if (ex) ex.remove(); }
+  var overlay = document.createElement('div');
+  overlay.className = 'wallet-overlay show';
+  if (id) overlay.id = id;
+  overlay.innerHTML = '<div class="wallet-popup"><div class="wallet-header"><div class="wallet-title">' + title + '</div><button class="wallet-close" onclick="this.closest(\'.wallet-overlay\').remove()">×</button></div>' + bodyHtml + '</div>';
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+// 物种立绘 + emoji 兜底的小图 HTML（图片缺失时显示 emoji，不破图）
+function mpThumbHtml(image, icon, sizeEmoji) {
+  return '<span style="font-size:' + (sizeEmoji || 40) + 'px;">' + (icon || '🐾') + '</span>'
+    + '<img src="' + (image || '') + '" alt="" onerror="this.style.display=\'none\';" '
+    + 'style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;">';
+}
+
+// ===== 轮播 =====
+var mpPetsCache = [];
+
+async function loadPetCarousel() {
+  var track = document.getElementById('mpCarouselTrack');
+  if (!track) return;
+  try {
+    var resp = await fetch('/api/pets');
+    var data = await resp.json();
+    if (typeof data.coins !== 'undefined') { var c = document.getElementById('mpCoinNum'); if (c) c.textContent = data.coins; }
+    if (!data.pets || !data.pets.length) { track.innerHTML = '<div class="mp-carousel-loading">还没有其他宠物，去领养吧！</div>'; return; }
+    mpPetsCache = data.pets;
+    var html = '';
+    data.pets.forEach(function(p) {
+      html += '<div class="mp-card' + (p.is_active ? ' active' : '') + '" onclick="mpCardClick(' + p.id + ',' + (p.is_active ? 'true' : 'false') + ')">'
+        + (p.is_active ? '<div class="mp-card-badge">当前</div>' : '')
+        + '<div class="mp-card-img" style="position:relative;">' + mpThumbHtml(p.image, p.icon, 40) + '</div>'
+        + '<div class="mp-card-name">' + (p.name || p.species_name || '宠物') + '</div>'
+        + '<div class="mp-card-lv">Lv.' + (p.level || 1) + '</div>'
+        + '</div>';
+    });
+    track.innerHTML = html;
+  } catch (e) {
+    track.innerHTML = '<div class="mp-carousel-loading">加载失败</div>';
+  }
+}
+
+function mpScroll(dir) {
+  var track = document.getElementById('mpCarouselTrack');
+  if (track) track.scrollBy({ left: dir * 200, behavior: 'smooth' });
+}
+
+function mpCardClick(id, isActive) {
+  if (isActive) { showToast('这就是当前的小伙伴哦～'); return; }
+  var pet = null;
+  for (var i = 0; i < mpPetsCache.length; i++) { if (mpPetsCache[i].id === id) { pet = mpPetsCache[i]; break; } }
+  if (!pet) { showSwitchModal(); return; }
+  showSwitchConfirm(pet);
+}
+
+// ===== 切换弹窗 =====
+async function showSwitchModal() {
+  var body = '<div class="mp-section"><div class="mp-sub">点一只宠物切换到它～</div><div class="mp-switch-list" id="mpSwitchList">加载中…</div></div>';
+  openMpModal('🔄 切换宠物', body, 'mpSwitchModal');
+  try {
+    var resp = await fetch('/api/pets');
+    var data = await resp.json();
+    mpPetsCache = data.pets || [];
+    var list = document.getElementById('mpSwitchList');
+    if (!list) return;
+    if (!mpPetsCache.length) { list.innerHTML = '<div style="color:#aaa;padding:10px;">还没有宠物</div>'; return; }
+    var html = '';
+    mpPetsCache.forEach(function(p) {
+      html += '<div class="mp-switch-item' + (p.is_active ? ' active' : '') + '" onclick="mpSwitchPick(' + p.id + ')">'
+        + '<div class="mp-switch-emoji" style="position:relative;">' + mpThumbHtml(p.image, p.icon, 32) + '</div>'
+        + '<div class="mp-switch-info"><div class="mp-switch-name">' + (p.name || p.species_name || '宠物') + '</div>'
+        + '<div class="mp-switch-meta">' + (p.species_name || '') + ' · Lv.' + (p.level || 1) + (p.is_active ? ' · 当前' : '') + '</div></div>'
+        + '<div class="mp-switch-go">' + (p.is_active ? '✔️' : '切换 ›') + '</div>'
+        + '</div>';
+    });
+    list.innerHTML = html;
+  } catch (e) {
+    var l = document.getElementById('mpSwitchList');
+    if (l) l.innerHTML = '<div style="color:#aaa;padding:10px;">加载失败</div>';
+  }
+}
+
+function mpSwitchPick(id) {
+  var pet = null;
+  for (var i = 0; i < mpPetsCache.length; i++) { if (mpPetsCache[i].id === id) { pet = mpPetsCache[i]; break; } }
+  if (!pet) return;
+  if (pet.is_active) { showToast('这就是当前的小伙伴哦～'); return; }
+  showSwitchConfirm(pet);
+}
+
+function showSwitchConfirm(pet) {
+  var body = '<div class="mp-section" style="text-align:center;">'
+    + '<div style="font-size:48px;margin:6px 0;">' + (pet.icon || '🐾') + '</div>'
+    + '<div style="font-size:16px;font-weight:800;color:#2D3436;margin-bottom:6px;">要把现在的小伙伴换成「' + (pet.name || pet.species_name) + '」吗？</div>'
+    + '<div style="font-size:12px;color:#999;margin-bottom:16px;">切换后它会出现在主页哦～</div>'
+    + '<div style="display:flex;gap:10px;">'
+    + '<button class="mp-tool-btn" style="flex:1;background:#f0f0f0;color:#666;" onclick="var m=document.getElementById(\'mpSwitchModal\');if(m)m.remove()">再想想</button>'
+    + '<button class="mp-tool-btn" style="flex:1;background:linear-gradient(135deg,#6C5CE7,#A29BFE);" onclick="mpDoSwitch(' + pet.id + ')">确定切换</button>'
+    + '</div></div>';
+  openMpModal('🔄 切换宠物', body, 'mpSwitchModal');
+}
+
+async function mpDoSwitch(id) {
+  try {
+    var fd = new FormData();
+    fd.append('pet_id', id);
+    var resp = await fetch('/api/pets/switch', { method: 'POST', body: fd });
+    var data = await resp.json();
+    if (data.success) { showToast(data.message || '切换成功！'); setTimeout(function() { location.reload(); }, 900); }
+    else { showToast(data.message || '切换失败'); }
+  } catch (e) { showToast('切换失败，请重试'); }
+}
+
+// ===== 领养中心 =====
+async function showAdoptShop() {
+  var body = '<div class="mp-section"><div class="mp-sub">用龙币领养新伙伴，每个种类限 1 只～</div><div class="mp-shop-grid" id="mpShopGrid">加载中…</div></div>';
+  openMpModal('🛒 领养中心', body, 'mpAdoptModal');
+  try {
+    var resp = await fetch('/api/pets/shop');
+    var data = await resp.json();
+    var items = data.shop || [];
+    var grid = document.getElementById('mpShopGrid');
+    if (!grid) return;
+    if (!items.length) { grid.innerHTML = '<div style="color:#aaa;padding:10px;">暂无可领养的宠物</div>'; return; }
+    var html = '';
+    var rarityName = { common: '普通', rare: '稀有', epic: '史诗', legend: '传说' };
+    items.forEach(function(it) {
+      var rarityCls = 'mp-rarity-' + (it.rarity || 'common');
+      var rName = rarityName[it.rarity] || it.rarity || '';
+      var btn = it.owned
+        ? '<div class="mp-owned-tag">✅ 已拥有</div>'
+        : '<button class="mp-adopt-btn" onclick="mpAdopt(\'' + it.id + '\')">领养 ' + it.base_price + '🪙</button>';
+      html += '<div class="mp-shop-card' + (it.owned ? ' owned' : '') + '">'
+        + '<div class="mp-shop-emoji" style="position:relative;">' + mpThumbHtml(it.image, it.icon, 42) + '</div>'
+        + '<div class="mp-shop-name">' + (it.name || it.id) + '</div>'
+        + '<div class="mp-shop-rarity ' + rarityCls + '">' + rName + '</div>'
+        + '<div class="mp-shop-price">' + it.base_price + ' 🪙</div>'
+        + btn
+        + '</div>';
+    });
+    grid.innerHTML = html;
+  } catch (e) {
+    var g = document.getElementById('mpShopGrid');
+    if (g) g.innerHTML = '<div style="color:#aaa;padding:10px;">加载失败</div>';
+  }
+}
+
+async function mpAdopt(speciesId) {
+  try {
+    var fd = new FormData();
+    fd.append('species_id', speciesId);
+    var resp = await fetch('/api/pets/adopt', { method: 'POST', body: fd });
+    var data = await resp.json();
+    if (data.success) {
+      showToast(data.message || '领养成功！');
+      var m = document.getElementById('mpAdoptModal');
+      if (m) m.remove();
+      setTimeout(function() { location.reload(); }, 1000);
+    } else {
+      if (data.code === 'ALREADY_OWNED') showToast('你已经拥有它啦（同类限 1 只）');
+      else if (data.code === 'NO_COINS') showToast(data.message || '龙币不足');
+      else if (data.code === 'NO_SPECIES' || data.code === 'NOT_SHOP') showToast(data.message || '暂时不能领养');
+      else showToast(data.message || '领养失败，请重试');
+    }
+  } catch (e) { showToast('领养失败，请重试'); }
+}
+
+// ===== 扭蛋机 =====
+async function showGachaPanel() {
+  var coins = 0;
+  try { var r = await fetch('/api/pets'); var d = await r.json(); coins = d.coins || 0; } catch (e) {}
+  var cost = 50;
+  var body = '<div class="mp-section"><div class="mp-gacha-stage">'
+    + '<div class="mp-gacha-machine" id="mpGachaMachine">🎰</div></div>'
+    + '<div class="mp-gacha-coin">🪙 你有 ' + coins + ' 龙币</div>'
+    + '<div class="mp-gacha-cost">抽一次需要 ' + cost + ' 龙币</div>'
+    + '<button class="mp-gacha-btn" id="mpGachaBtn" onclick="mpDoGacha()">🎰 抽一次（' + cost + '🪙）</button>'
+    + '</div>';
+  openMpModal('🎰 扭蛋机', body, 'mpGachaModal');
+}
+
+async function mpDoGacha() {
+  var btn = document.getElementById('mpGachaBtn');
+  var machine = document.getElementById('mpGachaMachine');
+  if (btn) { btn.disabled = true; btn.textContent = '扭蛋中…'; }
+  if (machine) machine.classList.add('shaking');
+  try {
+    var resp = await fetch('/api/pets/gacha', { method: 'POST' });
+    var data = await resp.json();
+    if (machine) machine.classList.remove('shaking');
+    if (!data.success) {
+      if (data.code === 'NO_COINS') showToast(data.message || '龙币不足');
+      else showToast(data.message || '扭蛋失败');
+      if (btn) { btn.disabled = false; btn.textContent = '🎰 抽一次（50🪙）'; }
+      return;
+    }
+    if (typeof data.coins !== 'undefined') { var c = document.getElementById('mpCoinNum'); if (c) c.textContent = data.coins; }
+    if (data.duplicated) {
+      showGachaResult(data.icon || '🐾', null, '重复啦！', '获得 ' + data.compensation + ' 龙币补偿 🪙');
+    } else {
+      showGachaResult(data.icon || '🐾', data.image || null, '抽中' + (data.name || '新宠物') + '！', '新伙伴已收入囊中，去「切换」它吧～');
+    }
+  } catch (e) {
+    if (machine) machine.classList.remove('shaking');
+    showToast('扭蛋失败，请重试');
+    if (btn) { btn.disabled = false; btn.textContent = '🎰 抽一次（50🪙）'; }
+  }
+}
+
+function showGachaResult(icon, image, title, desc) {
+  var innerImg = image
+    ? '<img src="' + image + '" alt="" onerror="this.style.display=\'none\';" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;">'
+    : '';
+  var body = '<div class="mp-section"><div class="mp-result mp-coin-pop">'
+    + '<div class="mp-result-emoji" style="position:relative;">'
+    + '<span style="font-size:64px;">' + icon + '</span>' + innerImg
+    + '</div>'
+    + '<div class="mp-result-title">' + title + '</div>'
+    + '<div class="mp-result-desc">' + desc + '</div>'
+    + '<button class="mp-result-btn" onclick="var m=document.getElementById(\'mpGachaModal\');if(m)m.remove()">太棒啦！</button>'
+    + '</div></div>';
+  openMpModal('🎰 扭蛋结果', body, 'mpGachaModal');
+}
+
+// ===== 签到（页面加载静默 + 手动按钮） =====
+async function doSignin() { await _signin(true); }
+async function autoSignin() { await _signin(false); }
+
+async function _signin(manual) {
+  try {
+    var resp = await fetch('/api/pets/signin', { method: 'POST' });
+    var data = await resp.json();
+    if (typeof data.coins !== 'undefined') { var c = document.getElementById('mpCoinNum'); if (c) c.textContent = data.coins; }
+    if (!data.success && data.code === 'ALREADY_SIGNED') {
+      if (manual) showToast('今天已经签到啦～');
+      return;
+    }
+    if (data.success) {
+      if (data.reward && data.reward.type === 'pet') {
+        showSigninResult(data.reward.icon || '🐼', '签到成功！', '连续签到 ' + (data.signin_count || 0) + ' 天，获得熊猫🐼！');
+      } else {
+        var amt = (data.reward && data.reward.amount) ? data.reward.amount : 5;
+        showToast(manual ? ('签到成功！+' + amt + ' 龙币 🪙') : ('每日签到 +' + amt + ' 龙币 🪙'));
+      }
+    }
+  } catch (e) { if (manual) showToast('签到失败'); }
+}
+
+function showSigninResult(icon, title, desc) {
+  var body = '<div class="mp-section"><div class="mp-result mp-coin-pop">'
+    + '<div class="mp-result-emoji" style="position:relative;"><span style="font-size:64px;">' + icon + '</span></div>'
+    + '<div class="mp-result-title">' + title + '</div>'
+    + '<div class="mp-result-desc">' + desc + '</div>'
+    + '<button class="mp-result-btn" onclick="this.closest(\'.wallet-overlay\').remove()">好耶！</button>'
+    + '</div></div>';
+  openMpModal('📅 签到', body, 'mpSigninModal');
+}
+
+// 页面加载：渲染轮播 + 静默签到
+document.addEventListener('DOMContentLoaded', function() {
+  loadPetCarousel();
+  autoSignin();
+});
 </script>
 
 </body>
