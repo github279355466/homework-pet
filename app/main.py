@@ -2601,6 +2601,60 @@ async def daily_signin():
             "reward": reward, "coins": coins_now, "message": msg}
 
 
+
+# ===== 小龙陪聊 API (Companion Chat) =====
+# 20260719 modi by codex: 聊天代理路由，转发 Hermes
+
+from chat_proxy import chat as hermes_chat, _find_hermes_exec
+
+
+def _get_pet_state_for_chat():
+    try:
+        conn = get_db_connection()
+        pet = conn.execute("SELECT mood, bond, hunger FROM pet_collection WHERE id = (SELECT COALESCE(active_pet_id, 1) FROM session_meta LIMIT 1)").fetchone()
+        if not pet:
+            pet = conn.execute("SELECT mood, bond, hunger FROM pet_collection LIMIT 1").fetchone()
+        conn.close()
+        if pet:
+            return {"mood": pet["mood"], "bond": pet["bond"], "hunger": pet["hunger"]}
+    except Exception:
+        pass
+    return {}
+
+
+def _get_today_tasks_for_chat():
+    try:
+        conn = get_db_connection()
+        today = get_current_time().strftime("%Y-%m-%d")
+        tasks = conn.execute("SELECT name FROM daily_tasks WHERE date = ? AND status = \"pending\"", (today,)).fetchall()
+        conn.close()
+        if tasks:
+            return [{"name": t["name"]} for t in tasks]
+    except Exception:
+        pass
+    return [{"name": t["name"]} for t in DEFAULT_TASKS]
+
+
+@app.post("/api/chat/message")
+async def chat_message(request: Request):
+    """聊天消息入口"""
+    data = await request.json()
+    user_text = data.get("text", "").strip()
+    if not user_text:
+        return JSONResponse({"error": "Empty message"}, status=400)
+    session_id = data.get("session_id")
+    pet_state = _get_pet_state_for_chat()
+    tasks = _get_today_tasks_for_chat()
+    result = hermes_chat(message=user_text, session_id=session_id, pet_mood=pet_state, today_tasks=tasks)
+    return JSONResponse({"text": result["text"], "session_id": result.get("session_id"), "pet_mood": result.get("mood"), "blocked": result.get("blocked", False)})
+
+
+@app.get("/api/chat/status")
+async def chat_status():
+    """聊天系统状态"""
+    p = _find_hermes_exec()
+    return {"hermes_found": bool(p), "hermes_path": str(p), "mode": os.getenv("CHAT_PROXY_MODE", "subprocess")}
+
 # ===== 启动 =====
 
 if __name__ == "__main__":
