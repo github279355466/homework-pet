@@ -1,5 +1,10 @@
 """
 app/chat_proxy.py - Hermes Bridge for homework-child profile.
+通过环境变量控制调用模式:
+  CHAT_PROXY_MODE=http|subprocess  (默认 http，用于远程部署)
+  HERMES_API_URL=http://...:8642/v1/chat/completions
+  HERMES_API_KEY=xxx (Bearer <REDACTED>)
+  HERMES_TIMEOUT=60 (超时秒数)
 """
 
 import os
@@ -12,18 +17,19 @@ from typing import Optional
 
 logger = logging.getLogger("homework-pet.chat_proxy")
 
+# ===== 配置 (全部通过环境变量控制) =====
 HERMES_PROFILE = os.getenv("HERMES_PROFILE", "homework-child")
 HERMES_EXEC = os.getenv("HERMES_EXEC", "")
-HERMES_HOME = os.getenv("HERMES_HOME", "")
-CHAT_PROXY_MODE = os.getenv("CHAT_PROXY_MODE", "subprocess")
-HERMES_API_URL = os.getenv("HERMES_API_URL", "http://127.0.0.1:8642/v1/chat/completions")
+HERMES_API_URL = os.getenv("HERMES_API_URL", "")
 HERMES_API_KEY = os.getenv("HERMES_API_KEY", "")
+CHAT_PROXY_MODE = os.getenv("CHAT_PROXY_MODE", "http" if HERMES_API_URL else "subprocess")
+HERMES_TIMEOUT = int(os.getenv("HERMES_TIMEOUT", "60"))
 MAX_INPUT_LENGTH = 500
 _RATE_LOG = []
 
 
 def check_rate_limit():
-    """Rate limit: 100 requests per 10 minutes (sliding window)."""
+    """频率限制: 100次/10分钟滑动窗口"""
     _RATE_MAX = 100
     _RATE_WINDOW = 600
     now = time.time()
@@ -36,12 +42,11 @@ def check_rate_limit():
 
 
 def filter_input(text):
-    """Block blacklisted content and truncate long messages."""
+    """安全过滤 + 长度截断"""
     BLACKLIST_RE = re.compile(
         "|".join([
-            r"\u5907\u5973|\u505a\u7231|\u5f3a\u5978|\u8272\u60c5|\u6fc0\u60c5|\u88f8\u4f53",
-            r"\u81ea\u6740|\u5272\u8155|\u8df3\u697c|\u6740\u4eba|\u8840\u8165|\u6050\u6016.*\u6545\u4e8b|\u9ed1\u6697.*\u7ae5\u8bdd",
-            r"\u4e60\u8fd1\u5e73|\u6bdb\u6cfd\u4e1c|\u6cd5\u8f6e\u529f|\u5929\u5b89\u95e8.*\u4e8b\u4ef6|\u53f0\u72ec|\u65b0\u7586.*\u72ec",
+            r"做爱|强奸|激情|裸体|色情",
+            r"自杀|割腕|跳楼|杀人|血腥",
         ]),
         re.IGNORECASE,
     )
@@ -53,165 +58,53 @@ def filter_input(text):
 
 
 def build_system_prompt(pet_mood, today_tasks):
-    """Inject pet state and daily tasks into system prompt."""
+    """注入宠物状态和今日任务到 prompt"""
     parts = []
     if pet_mood:
         m = (
-            f"LongCat-2.0: \u5fc3\u60c5{pet_mood.get('mood', 50)}"
-            f"\u3001\u9971\u8179{pet_mood.get('hunger', 50)}"
-            f"\u3001\u4eb2\u5bc6\u5ea6{pet_mood.get('bond', 50)}\u3002"
+            f"小龙当前状态：心情{pet_mood.get('mood', 50)}"
+            f"、饱腹{pet_mood.get('hunger', 50)}"
+            f"、亲密度{pet_mood.get('bond', 50)}。"
         )
         parts.append("[PET MOOD]\n" + m)
     if today_tasks:
-        lines = [f"- {x.get('name', x.get('subject', '\u4efb\u52a1'))}" for x in today_tasks]
+        lines = [f"- {x.get('name', x.get('subject', '任务'))}" for x in today_tasks]
         parts.append("[TODAY TASKS]\n" + "\n".join(lines))
     return "\n\n".join(parts)
 
 
 def detect_mood_from_text(text):
-    """Pick a mood emoji based on response keywords."""
-    if any(w in text for w in ["\u592a\u68d2\u4e86", "\u771f\u5389\u5bb3", "\u505a\u5f97\u5f88\u597d", "\u597d\u68d2"]):
+    """根据回复内容检测心情"""
+    if any(w in text for w in ["太棒了", "真厉害", "做得很好", "好棒"]):
         return "happy"
-    if any(w in text for w in ["\u6ca1\u5173\u7cfb", "\u4e0b\u6b21\u4e00\u5b9a", "\u6162\u6162\u6765", "\u52a0\u6cb9"]):
+    if any(w in text for w in ["没关系", "下次一定", "慢慢来", "加油"]):
         return "encourage"
-    if any(w in text for w in ["\u60f3\u4e00\u60f3", "\u8bd5\u8bd5\u770b", "\u6362\u4e2a\u89d2\u5ea6"]):
+    if any(w in text for w in ["想一想", "试试看", "换个角度"]):
         return "thinking"
-    if any(w in text for w in ["\u4e0d\u9002\u5408\u804a", "\u8fd9\u4e2a\u8bdd\u9898"]):
+    if any(w in text for w in ["不适合聊", "这个话题"]):
         return "gentle_refuse"
     return "normal"
 
 
-BOX_TOP = "\u256d\u2500"
-BOX_BOT = "\u2570\u2500"
-
-
-def _strip_ansi(text):
-    """Remove ANSI escape sequences (ESC[ codes)."""
-    return re.sub(chr(0x1B) + r'\[[0-9;]*m', '', text)
-
-
-
-def _find_hermes_box(lines):
-    """Find response box start/end indices. Handles both TTY and piped output."""
-    start_idx = None
-    end_idx = None
-    for i, line in enumerate(lines):
-        if start_idx is None:
-            if "Hermes" in line and (chr(0x2695) in line or chr(0x256d) in line or (chr(0x2500) in line and i > 0)):
-                start_idx = i
-        else:
-            stripped = line.strip()
-            if stripped and all(c == chr(0x2500) for c in stripped) and len(stripped) > 10:
-                end_idx = i
-                break
-    return start_idx, end_idx
-def _parse_hermes_output(output):
-    """Parse Hermes output using flexible box detection."""
-    output = _strip_ansi(output)
-    lines = output.split("\n")
-    result = _parse_and_extract(lines)
-    return result
-
-def _parse_and_extract(lines):
-    start_idx, end_idx = _find_hermes_box(lines)
-    if start_idx is None:
-        return {"text": "", "session_id": None}
-    end = end_idx if end_idx is not None else len(lines)
-    content_lines = lines[start_idx + 1 : end]
-    response_lines = []
-    for line in content_lines:
-        if line.startswith("     "): line = line[5:]
-        elif line.startswith("    "): line = line[4:]
-        elif line.startswith("  "): line = line[2:]
-        s = line.strip()
-        if s:
-            response_lines.append(s)
-    text = chr(10).join(response_lines).strip()
-    sid = None
-    for line in lines:
-        m = re.match(r"Session:\s*(\S+)", line)
-        if m:
-            sid = m.group(1)
-            break
-    return {"text": text, "session_id": sid}
-
-
-def _find_hermes_exec():
-    """Locate hermes executable."""
-    if HERMES_EXEC and Path(HERMES_EXEC).exists():
-        return HERMES_EXEC
-    for c in [
-        Path.home() / ".local/bin/hermes",
-        Path.home() / ".local/bin/hermes.cmd",
-        Path(os.getenv("LOCALAPPDATA", "")) / "hermes/hermes-agent/venv/Scripts/hermes.exe",
-    ]:
-        if c.exists():
-            return str(c)
-    return "hermes"
-
-
-def call_hermes_subprocess(message, session_id=None, system_context=None):
-    """Call Hermes in subprocess mode."""
-    hermes_exec = _find_hermes_exec()
-    cmd = [hermes_exec, "--profile", HERMES_PROFILE, "chat"]
-    if system_context:
-        full_msg = system_context + "\n\n---\n\n\u5c0f\u670b\u53cb\u8bf4\uff1a" + message
-    else:
-        full_msg = message
-    if session_id:
-        cmd.extend(["--continue", session_id])
-    cmd.extend(["--query", full_msg])
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    env["TERM"] = "dumb"
-    if HERMES_HOME:
-        env["HERMES_HOME"] = HERMES_HOME
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=120,
-            env=env,
-            cwd=str(Path.home()),
-        )
-        output = result.stdout + result.stderr
-        parsed = _parse_hermes_output(output)
-        mood = detect_mood_from_text(parsed["text"])
-        return {
-            "text": parsed["text"],
-            "session_id": parsed.get("session_id", session_id),
-            "mood": mood,
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "text": "LongCat-2.0: \u5f88\u4e45\u6ca1\u56de\u5e94\uff0c\u53ef\u80fd\u5728\u4f11\u606f",
-            "session_id": session_id,
-            "mood": "overwhelmed",
-        }
-    except Exception as e:
-        return {
-            "text": "LongCat-2.0\u6682\u65f6\u65e0\u6cd5\u56de\u5e94\uff1a" + str(e)[:50],
-            "session_id": session_id,
-            "mood": "error",
-        }
-
-
+# ═══════════════════════════════════════════════
+# HTTP 模式 (远程 Hermes)
+# ═══════════════════════════════════════════════
 def call_hermes_http(message, session_id=None, system_context=None):
-    """HTTP mode for production (Linux) ."""
+    """HTTP 模式: 调用远程 Hermes API Server"""
     try:
         import httpx
     except ImportError:
-        return call_hermes_subprocess(message, session_id, system_context)
+        return {"text": "缺少 httpx 依赖", "session_id": None, "mood": "error"}
+
     headers = {"Content-Type": "application/json"}
     if HERMES_API_KEY:
-        headers["Authorization"] = "Bearer " + HERMES_API_KEY
+        headers["Authorization"] = f"Bearer {HERMES_API_KEY}"
+
     msgs = []
     if system_context:
         msgs.append({"role": "system", "content": system_context})
     msgs.append({"role": "user", "content": message})
+
     payload = {
         "model": "deepseek-chat",
         "messages": msgs,
@@ -220,51 +113,133 @@ def call_hermes_http(message, session_id=None, system_context=None):
     }
     if session_id:
         payload["session_id"] = session_id
+
     try:
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=float(HERMES_TIMEOUT)) as client:
             resp = client.post(HERMES_API_URL, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
             text = data["choices"][0]["message"]["content"]
             return {
                 "text": text,
-                "session_id": session_id or data.get("session_id"),
+                "session_id": data.get("session_id", session_id),
                 "mood": detect_mood_from_text(text),
             }
-    except Exception:
-        return call_hermes_subprocess(message, session_id, system_context)
-
-
-def chat(message, session_id=None, pet_mood=None, today_tasks=None):
-    """Main entry: process one chat message."""
-    if not check_rate_limit():
+    except httpx.TimeoutException:
         return {
-            "text": "LongCat-2.0: \u8bf4\u5f97\u592a\u5feb\u5566",
+            "text": f"小龙思考超时（>{HERMES_TIMEOUT}s），请稍后重试",
             "session_id": session_id,
             "mood": "overwhelmed",
-            "blocked": True,
         }
+    except Exception as e:
+        return {
+            "text": f"连接 Hermes 失败: {str(e)[:60]}",
+            "session_id": session_id,
+            "mood": "error",
+        }
+
+
+# ═══════════════════════════════════════════════
+# Subprocess 模式 (本地 Hermes)
+# ═══════════════════════════════════════════════
+BOX_TOP = "╭─"
+BOX_BOT = "╰─"
+
+
+def _strip_ansi(text):
+    return re.sub(chr(0x1B) + r'\[[0-9;]*m', '', text)
+
+
+def call_hermes_subprocess(message, session_id=None, system_context=None):
+    """Subprocess 模式: 本地调用 hermes CLI"""
+    hermes_exec = HERMES_EXEC or "hermes"
+    cmd = [hermes_exec, "--profile", HERMES_PROFILE, "chat"]
+    if session_id:
+        cmd.extend(["--continue", session_id])
+    cmd.extend(["--query", message])
+
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["TERM"] = "dumb"
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=HERMES_TIMEOUT,
+            env=env,
+        )
+        # 解析输出
+        output = result.stdout
+        # 简单提取回复: 找第一个非空行且不是 Reasoning/Query/Session
+        lines = _strip_ansi(output).split("\n")
+        response_lines = []
+        capture = False
+        for line in lines:
+            s = line.strip()
+            if not s:
+                continue
+            if "Hermes" in s and ("─" in s or "⚕" in s):
+                capture = True
+                continue
+            if capture and "─" in s and len(s) > 20:
+                break
+            if capture and s and not any(k in s for k in ["Query:", "Session:", "Duration:", "Reasoning", "Resume"]):
+                response_lines.append(s)
+
+        text = "\n".join(response_lines).strip()
+        if not text:
+            # 降级: 把所有非空非系统行拼起来
+            text = "\n".join(
+                l.strip() for l in lines
+                if l.strip() and not any(
+                    k in l for k in ["Query:", "Session:", "Duration:", "Reasoning", "Resume", "Messages:", "──", "hermes"]
+                )
+            ).strip()
+
+        return {
+            "text": text or "小龙没有回复内容",
+            "session_id": session_id,
+            "mood": detect_mood_from_text(text),
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "text": f"小龙思考超时（>{HERMES_TIMEOUT}s）",
+            "session_id": session_id,
+            "mood": "overwhelmed",
+        }
+    except Exception as e:
+        return {
+            "text": f"调用本地 Hermes 失败: {str(e)[:60]}",
+            "session_id": session_id,
+            "mood": "error",
+        }
+
+
+# ═══════════════════════════════════════════════
+# 入口
+# ═══════════════════════════════════════════════
+def chat(message, session_id=None, pet_mood=None, today_tasks=None):
+    """主入口"""
+    if not check_rate_limit():
+        return {"text": "说太快啦，让小龙头休息一下", "session_id": session_id, "mood": "overwhelmed", "blocked": True}
+
     clean_text, blocked = filter_input(message)
     if blocked:
-        return {
-            "text": "LongCat-2.0: \u8fd9\u4e2a\u8bdd\u9898\u6211\u4eec\u4e0d\u9002\u5408\u804a",
-            "session_id": session_id,
-            "mood": "gentle_refuse",
-            "blocked": True,
-        }
+        return {"text": "这个话题不适合聊哦", "session_id": session_id, "mood": "gentle_refuse", "blocked": True}
+
     ctx = ""
     if pet_mood or today_tasks:
         ctx = build_system_prompt(pet_mood or {}, today_tasks or [])
-    if CHAT_PROXY_MODE == "http" and HERMES_API_URL:
+
+    if CHAT_PROXY_MODE == "http":
         result = call_hermes_http(clean_text, session_id, ctx)
     else:
         result = call_hermes_subprocess(clean_text, session_id, ctx)
+
     result["blocked"] = False
-    with open("C:/Users/Administrator/Desktop/chat_debug.json", "w", encoding="utf-8") as _dbg:
-        import json as _j
-        _j.dump(result, _dbg, ensure_ascii=False)
     return result
-
-
-
-
