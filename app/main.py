@@ -847,10 +847,8 @@ async def pet_interact(interaction_type: str = Form("pat")):
     bubble = None
     try:
         msgs = [{"role": "user", "content": action + "。你是作业小龙，用10字以内活泼回应，只回复对话内容"}]
-        _parts = []
-        async for chunk in call_hermes(msgs, stream=False):
-            _parts.append(chunk)
-        _b = "".join(_parts).strip().strip('"').strip()
+        _b = await call_hermes(msgs)
+        _b = _b.strip().strip('"').strip()
         if _b and len(_b) < 30:
             bubble = _b
     except Exception:

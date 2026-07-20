@@ -69,7 +69,7 @@ def build_context(pet_mood, today_tasks):
     return "\n\n".join(parts)
 
 
-async def call_hermes(messages, session_id=None, stream=True):
+async def call_hermes(messages, session_id=None):
     """调用 Hermes API Server — 不传 model，用 profile 默认"""
     import httpx
 
@@ -79,32 +79,17 @@ async def call_hermes(messages, session_id=None, stream=True):
 
     payload = {
         "messages": messages,
-        "stream": stream,
+        "stream": False,
         "temperature": 0.8,
     }
     if session_id:
         payload["session_id"] = session_id
 
-    try:
-        async with httpx.AsyncClient(timeout=float(HERMES_TIMEOUT)) as client:
-            if stream:
-                async with client.stream("POST", HERMES_API_URL, json=payload, headers=headers) as resp:
-                    resp.raise_for_status()
-                    async for line in resp.aiter_lines():
-                        if line.startswith("data: "):
-                            chunk = line[6:]
-                            if chunk.strip() == "[DONE]":
-                                break
-                            yield chunk
-            else:
-                resp = await client.post(HERMES_API_URL, json=payload, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
-                yield data["choices"][0]["message"]["content"]
-    except httpx.TimeoutException:
-        yield f"思考超时（>{HERMES_TIMEOUT}s），请稍后重试"
-    except Exception as e:
-        yield f"连接 Hermes 失败: {str(e)[:60]}"
+    async with httpx.AsyncClient(timeout=float(HERMES_TIMEOUT)) as client:
+        resp = await client.post(HERMES_API_URL, json=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"]
 
 
 async def chat(message, session_id=None, pet_mood=None, today_tasks=None):
@@ -122,9 +107,12 @@ async def chat(message, session_id=None, pet_mood=None, today_tasks=None):
         msgs.append({"role": "system", "content": ctx})
     msgs.append({"role": "user", "content": clean_text})
 
-    full_text = ""
-    async for chunk in call_hermes(msgs, session_id=session_id, stream=False):
-        full_text += chunk
+    try:
+        full_text = await call_hermes(msgs, session_id=session_id)
+    except httpx.TimeoutException:
+        full_text = f"思考超时（>{HERMES_TIMEOUT}s），请稍后重试"
+    except Exception as e:
+        full_text = f"连接 Hermes 失败: {str(e)[:60]}"
 
     return {
         "text": full_text,
