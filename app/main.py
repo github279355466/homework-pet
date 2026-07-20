@@ -841,18 +841,35 @@ async def pet_interact(interaction_type: str = Form("pat")):
 
     bond = active_dict.get('bond', 50)
     
-    if interaction_type == 'pat':
-        bond_delta, mood_delta = 2, 1
-        bubble = random.choice(['好舒服～', '再摸摸～', '嘿嘿😊', '嗯～好暖和', '最喜欢你了💕'])
-    elif interaction_type == 'tickle':
-        bond_delta, mood_delta = 3, 2
-        bubble = random.choice(['哈哈哈好痒！', '别挠了～', '受不了啦😆', '嘻嘻嘻～', '好好玩！'])
-    elif interaction_type == 'play':
-        bond_delta, mood_delta = 2, 0
-        bubble = random.choice(['太好玩了！', '再来再来！', '耶！', '好开心！', '转圈圈～'])
-    else:
-        bond_delta, mood_delta = 1, 1
-        bubble = random.choice(['嗯？', '干嘛呀～', '嘿嘿'])
+    # 动态生成互动反馈 (走 Hermes)
+    prompt_map = {"pat": "小朋友摸了摸你的头", "tickle": "小朋友挠你痒痒", "play": "小朋友陪你玩"}
+    action = prompt_map.get(interaction_type, "小朋友和你互动")
+    bubble = None
+    try:
+        msgs = [{"role": "user", "content": action + "。你是作业小龙，用10字以内活泼回应，只回复对话内容"}]
+        _parts = []
+        async for chunk in call_hermes(msgs, stream=False):
+            _parts.append(chunk)
+        _b = "".join(_parts).strip().strip('"').strip()
+        if _b and len(_b) < 30:
+            bubble = _b
+    except Exception:
+        pass
+
+    # 兜底硬编码
+    if not bubble:
+        if interaction_type == "pat":
+            bond_delta, mood_delta = 2, 1
+            bubble = random.choice(["好舒服～", "再摸摸～", "嘿嘿😊"])
+        elif interaction_type == "tickle":
+            bond_delta, mood_delta = 3, 2
+            bubble = random.choice(["哈哈哈好痒！", "别挠了～", "受不了啦"])
+        elif interaction_type == "play":
+            bond_delta, mood_delta = 2, 0
+            bubble = random.choice(["太好玩了！", "再来再来！", "耶！"])
+        else:
+            bond_delta, mood_delta = 1, 1
+            bubble = random.choice(["嗯？", "嘿嘿"])
     
     new_bond = min(100, bond + bond_delta)
     new_mood = min(100, active_dict['mood'] + mood_delta)
@@ -2605,7 +2622,7 @@ async def daily_signin():
 # ===== 小龙陪聊 API (Companion Chat) =====
 # 20260719 modi by codex: 聊天代理路由，转发 Hermes
 
-from chat_proxy import chat as hermes_chat
+from chat_proxy import chat as hermes_chat, call_hermes
 
 
 def _get_pet_state_for_chat():
