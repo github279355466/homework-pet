@@ -2645,7 +2645,7 @@ async def chat_message(request: Request):
     session_id = data.get("session_id")
     pet_state = _get_pet_state_for_chat()
     tasks = _get_today_tasks_for_chat()
-    result = hermes_chat(message=user_text, session_id=session_id, pet_mood=pet_state, today_tasks=tasks)
+    result = await hermes_chat(message=user_text, session_id=session_id, pet_mood=pet_state, today_tasks=tasks)
     return JSONResponse({"text": result["text"], "session_id": result.get("session_id"), "pet_mood": result.get("mood"), "blocked": result.get("blocked", False)})
 
 
