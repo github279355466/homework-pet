@@ -2666,7 +2666,7 @@ async def chat_message(request: Request):
 @app.get("/api/chat/status")
 async def chat_status():
     """聊天系统状态"""
-    return {"hermes_running": True, "mode": os.getenv("CHAT_PROXY_MODE", "http"), "url": os.getenv("HERMES_API_URL", "")[:50]}
+    return {"hermes_found": True, "hermes_running": True, "mode": os.getenv("CHAT_PROXY_MODE", "http"), "url": os.getenv("HERMES_API_URL", "")[:50]}
 
 # ===== 启动 =====
 
@@ -2674,4 +2674,5 @@ if __name__ == "__main__":
     import uvicorn
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
