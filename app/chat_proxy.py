@@ -92,7 +92,6 @@ def call_hermes(message, session_id=None, system_context=None):
     msgs.append({"role": "user", "content": message})
 
     payload = {
-        "model": HERMES_MODEL,
         "messages": msgs,
         "stream": False,
         "max_tokens": 200,
