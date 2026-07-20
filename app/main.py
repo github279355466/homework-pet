@@ -840,7 +840,17 @@ async def pet_interact(interaction_type: str = Form("pat")):
         return {"success": False, "message": "嘘...小龙正在睡觉～"}
 
     bond = active_dict.get('bond', 50)
-    
+
+    # 绑定增量 (默认值)
+    if interaction_type == 'pat':
+        bond_delta, mood_delta = 2, 1
+    elif interaction_type == 'tickle':
+        bond_delta, mood_delta = 3, 2
+    elif interaction_type == 'play':
+        bond_delta, mood_delta = 2, 0
+    else:
+        bond_delta, mood_delta = 1, 1
+
     # 动态生成互动反馈 (走 Hermes)
     prompt_map = {"pat": "小朋友摸了摸你的头", "tickle": "小朋友挠你痒痒", "play": "小朋友陪你玩"}
     action = prompt_map.get(interaction_type, "小朋友和你互动")
@@ -856,18 +866,7 @@ async def pet_interact(interaction_type: str = Form("pat")):
 
     # 兜底硬编码
     if not bubble:
-        if interaction_type == "pat":
-            bond_delta, mood_delta = 2, 1
-            bubble = random.choice(["好舒服～", "再摸摸～", "嘿嘿😊"])
-        elif interaction_type == "tickle":
-            bond_delta, mood_delta = 3, 2
-            bubble = random.choice(["哈哈哈好痒！", "别挠了～", "受不了啦"])
-        elif interaction_type == "play":
-            bond_delta, mood_delta = 2, 0
-            bubble = random.choice(["太好玩了！", "再来再来！", "耶！"])
-        else:
-            bond_delta, mood_delta = 1, 1
-            bubble = random.choice(["嗯？", "嘿嘿"])
+        bubble = random.choice(["好舒服～", "嘿嘿😊", "哈哈哈好痒！", "别挠了～", "太好玩了！", "耶！", "嗯？"])
     
     new_bond = min(100, bond + bond_delta)
     new_mood = min(100, active_dict['mood'] + mood_delta)
