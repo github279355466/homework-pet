@@ -110,9 +110,9 @@ async def chat(message, session_id=None, pet_mood=None, today_tasks=None):
     try:
         full_text = await call_hermes(msgs, session_id=session_id)
     except httpx.TimeoutException:
-        full_text = f"思考超时（>{HERMES_TIMEOUT}s），请稍后重试"
+        full_text = "小龙思考中，请稍后重试～"
     except Exception as e:
-        full_text = f"连接 Hermes 失败: {str(e)[:60]}"
+        full_text = "小龙正在休息，请稍后重试～"
 
     return {
         "text": full_text,

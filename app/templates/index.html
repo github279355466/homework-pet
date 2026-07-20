@@ -1341,10 +1341,10 @@
 .chat-msg-dragon .chat-msg-bubble { background:#fff; border-bottom-left-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
 .chat-msg-user .chat-msg-bubble { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border-bottom-right-radius:4px; }
 .chat-typing { font-style:italic; color:#999; font-size:13px; }
-.chat-input-bar { display:flex; gap:8px; padding:12px 16px; background:#fff; border-top:1px solid #eee; }
+.chat-input-bar { display:flex; gap:8px; padding:12px 16px; background:#fff; border-top:1px solid #eee; position:relative; z-index:100;}
 #chatInput { flex:1; border:2px solid #e0e0e0; border-radius:24px; padding:10px 18px; font-size:14px; outline:none; transition:border-color .2s; }
 #chatInput:focus { border-color:#ff8a65; }
-#chatSendBtn { padding:10px 24px; background:linear-gradient(135deg,#ff8a65,#ffd54f); color:#fff; border:none; border-radius:24px; font-weight:600; cursor:pointer; transition:transform .1s; }
+#chatSendBtn { padding:10px 24px; background:linear-gradient(135deg,#ff8a65,#ffd54f); color:#fff; border:none; border-radius:24px; font-weight:600; cursor:pointer; transition:transform .1s; position:relative; z-index:101; }
 #chatSendBtn:active { transform:scale(0.95); }
 @keyframes chat-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .chat-avatar-bounce { animation: chat-bounce 0.6s ease; }
@@ -2194,7 +2194,7 @@ async function answerMathQuiz(answer) {
     const resultArea = document.getElementById('mathQuizResult');
     document.getElementById('mathQuizOptions').innerHTML = '';
     document.getElementById('mathQuizActions').style.display = 'none';
-    document.getElementById('mathQuizRetry').style.display = 'block';
+    document.getElementById('mathQuizRetry').style.display = 'none';
     if (result.success && correct) {
       document.getElementById('mathQuizIcon').textContent = '🎉';
       document.getElementById('mathQuizTitle').textContent = '答对啦！+10龙币！';
@@ -2204,18 +2204,20 @@ async function answerMathQuiz(answer) {
       updateCoinDisplay(result.new_coins);
       updateAttrBar('mood', result.mood);
       updateAttrBar('bond', result.bond);
-      mathQuizAutoCloseTimer = setTimeout(() => closeMathQuiz(), 2500);
+      // 答对后 1.5s 自动出下一题
+      mathQuizAutoCloseTimer = setTimeout(() => startMathQuiz(), 1500);
     } else {
       document.getElementById('mathQuizIcon').textContent = '🤔';
       document.getElementById('mathQuizTitle').textContent = '再试试吧！';
       resultArea.innerHTML = '<div style="font-size:16px;font-weight:700;color:#E53935;">不对哦～正确答案是 <span style="color:#00B894;font-size:20px;">' + mathQuizCorrectAnswer + '</span></div><div style="font-size:13px;color:#888;margin-top:4px;">' + result.bubble + '</div>';
+      mathQuizAutoCloseTimer = setTimeout(() => startMathQuiz(), 2000);
     }
   } catch(e) { showToast('提交失败'); }
 }
 
 function closeMathQuiz() {
   document.getElementById('mathQuizModal').classList.remove('show');
-  setTimeout(() => location.reload(), 300);
+  setTimeout(() => { document.getElementById('mathQuizModal').style.display = 'none'; }, 300);
 }
 
 // ===== v3.2 皮肤 =====
@@ -3915,7 +3917,17 @@ function speakText(text) {
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'zh-CN';
   u.rate = 0.9;
+  u.volume = 1;
+  // 尝试获取中文语音
+  const voices = speechSynthesis.getVoices();
+  const zhVoice = voices.find(v => v.lang.startsWith('zh'));
+  if (zhVoice) u.voice = zhVoice;
   speechSynthesis.speak(u);
+}
+// 预加载语音列表
+if (window.speechSynthesis) {
+  speechSynthesis.getVoices();
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 }
 
 function escapeHtml(text) {
