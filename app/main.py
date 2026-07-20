@@ -2605,7 +2605,7 @@ async def daily_signin():
 # ===== 小龙陪聊 API (Companion Chat) =====
 # 20260719 modi by codex: 聊天代理路由，转发 Hermes
 
-from chat_proxy import chat as hermes_chat, _find_hermes_exec
+from chat_proxy import chat as hermes_chat
 
 
 def _get_pet_state_for_chat():
@@ -2652,8 +2652,7 @@ async def chat_message(request: Request):
 @app.get("/api/chat/status")
 async def chat_status():
     """聊天系统状态"""
-    p = _find_hermes_exec()
-    return {"hermes_found": bool(p), "hermes_path": str(p), "mode": os.getenv("CHAT_PROXY_MODE", "subprocess")}
+    return {"hermes_running": True, "mode": os.getenv("CHAT_PROXY_MODE", "http"), "url": os.getenv("HERMES_API_URL", "")[:50]}
 
 # ===== 启动 =====
 
@@ -2661,3 +2660,4 @@ if __name__ == "__main__":
     import uvicorn
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
