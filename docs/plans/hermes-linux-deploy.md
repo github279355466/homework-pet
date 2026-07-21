@@ -26,24 +26,20 @@ hermes profile use homework-child
 ```
 
 ## 2.3 config.yaml（完整生产版）
+### 2.3 模型配置
 
-写入 `~/.hermes/profiles/homework-child/config.yaml`：
+服务器已有 Hermes 配置（`nous` + `tencent/hy3:free`），直接复用：
 
 ```yaml
+# config.yaml（现状）
 model:
-  default: deepseek-v4-flash
-  provider: deepseek-direct
-  context_length: 16384
-providers:
-  deepseek-direct:
-    base_url: https://api.deepseek.com/v1
-    api_key: sk-xxxxxxxxxxxxxxxx  # ← 替换为你的 DeepSeek Key
-    api_mode: chat_completions
-    models:
-      deepseek-chat:
-        name: deepseek-chat
-      deepseek-v4-flash:
-        name: deepseek-v4-flash
+  provider: nous
+  default: tencent/hy3:free
+```
+
+> Proxy 代码不传 `model` 字段，自动用 profile 默认。
+
+```yaml
 toolsets:
 - hermes-cli
 - memory
@@ -79,11 +75,10 @@ code_execution:
 写入 `~/.hermes/profiles/homework-child/.env`：
 
 ```ini
-DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
 API_SERVER_ENABLED=true
 API_SERVER_KEY=homework-child-secret-20260719
 API_SERVER_PORT=8642
-API_SERVER_HOST=127.0.0.1
+API_SERVER_HOST=0.0.0.0
 ```
 
 ## 2.5 Cron 配置（每晚学习总结）
@@ -91,7 +86,8 @@ API_SERVER_HOST=127.0.0.1
 ```bash
 hermes --profile homework-child cron create "0 22 * * *" \
   --prompt "回顾今天与小朋友的对话，生成学习日记：1) 今日所学知识点；2) 卡住的地方；3) 鼓励亮点；4) 明日建议。更新到 user_profile。语气温暖。" \
-  --name "daily-learning-summary"
+  --name "daily-learning-summary" \
+  --deliver local
 ```
 
 ## 2.6 systemd

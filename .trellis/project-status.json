@@ -1,9 +1,9 @@
 {
   "project": "homework-pet",
   "name_cn": "作业小龙",
-  "version": "v3.3.0",
-  "last_updated": "2026-07-09",
-  "status": "deployed",
+  "version": "v3.4.0",
+  "last_updated": "2026-07-18",
+  "status": "in_progress",
   "current_branch": "main",
   "production": {
     "platform": "Railway",
@@ -32,32 +32,18 @@
     "agents_skills": ".agents/skills/"
   },
   "current_task": {
-    "id": "v3.3-multi-pet",
-    "name": "多宠物系统改造",
-    "started": "2026-07-08",
-    "status": "deployed",
-    "owner": "codex",
+    "id": "companion-chat",
+    "name": "小龙陪聊系统（Companion Chat）",
+    "started": "2026-07-18",
+    "status": "in_progress",
+    "owner": "hermes",
     "branch": "main",
-    "design_doc": "docs/multi-pet-design.md",
-    "plan_doc": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md",
-    "trellis_dir": ".trellis/tasks/2026-07/v3.3-multi-pet/",
-    "total_tasks": 69,
-    "completed_tasks": 67,
-    "verification": {
-      "verified_by": "hermes",
-      "verified_at": "2026-07-09",
-      "total_checks": 67,
-      "passed": 61,
-      "real_bugs": 0,
-      "bug_details": [
-        "BUG#1: GET /api/pets/gacha/config 未实现 (404) — 已修复 (commit 34a32d1)",
-        "BUG#2: GET /api/pets/species 漏掉 owned 字段 — 已修复 (commit 34a32d1)"
-      ],
-      "journal": ".trellis/workspace/liucb/journal-2.md",
-      "fix_journal": ".trellis/workspace/liucb/journal-3.md",
-      "deploy_blocker": null,
-      "deploy_url": "https://homepet.up.railway.app",
-      "deploy_note": "2026-07-09 已部署上线，旧域名 web-production-a9e82 已废弃"
+    "plan_doc": "docs/plans/companion-chat-plan.md",
+    "deploy_target": "Linux 47.242.10.160:8642",
+    "components": {
+      "hermes_profile": "homework-child (deepseek-v4-flash)",
+      "proxy": "app/chat_proxy.py (待实现)",
+      "frontend": "聊天面板 (待实现)"
     }
   },
   "databases": {
@@ -76,7 +62,8 @@
     "main.py 末尾 port=int(os.environ.get('PORT', 5000)) 必须保留",
     "推送 main 分支即触发 Railway 自动部署",
     "静态图片压缩到 256x256 PNG",
-    "前端单页 index.html，后端单文件 main.py"
+    "前端单页 index.html，后端单文件 main.py",
+    "陪聊 API Server 独立部署在 Linux 服务器 47.242.10.160:8642"
   ],
   "key_tables": {
     "pet": "全局档案表 (id=1 固定) - coins/streak/math_streak",
@@ -95,7 +82,9 @@
     "prd_v33": ".trellis/tasks/2026-07/v3.3-multi-pet/PRD.md",
     "tasks_v33": ".trellis/tasks/2026-07/v3.3-multi-pet/tasks/",
     "journal": ".trellis/workspace/liucb/journal-1.md",
-    "claude_md": "CLAUDE.md"
+    "claude_md": "CLAUDE.md",
+    "companion_chat_plan": "docs/plans/companion-chat-plan.md",
+    "hermes_linux_deploy": "docs/plans/hermes-linux-deploy.md"
   },
   "agents": {
     "hermes_role": "architect-and-planner",

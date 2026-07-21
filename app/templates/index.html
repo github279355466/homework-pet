@@ -1348,7 +1348,7 @@
 #chatSendBtn:active { transform:scale(0.95); }
 @keyframes chat-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .chat-avatar-bounce { animation: chat-bounce 0.6s ease; }
-.tts-btn { background:none; border:none; cursor:pointer!important; font-size:16px; margin-left:6px; vertical-align:middle; pointer-events:auto!important; position:relative; z-index:999!important; }
+.tts-btn{background:none;border:none;cursor:pointer;font-size:16px;margin-left:6px;vertical-align:middle;pointer-events:auto!important;position:relative;z-index:999;}
 </style>
 </head>
 <body>
@@ -3869,7 +3869,7 @@ function appendChatMessage(role, text) {
   const html = '<div class="chat-msg chat-msg-' + role + '">' +
     '<div class="chat-msg-bubble">' +
     '<span>' + escapeHtml(text) + '</span>' +
-    (isDragon ? '<button class="tts-btn" data-action="speak" style="cursor:pointer;">&#x1F50A;</button>' : '') +
+    (isDragon ? '<button class="tts-btn" data-action="speak" style="cursor:pointer;pointer-events:auto!important;">&#x1F50A;</button>' : '') +
     '<div class="chat-msg-time" style="font-size:10px;color:#999;margin-top:4px;">' + time + '</div>' +
     '</div></div>';
 
@@ -3984,4 +3984,5 @@ document.addEventListener('click', function(e) {
 
 </body>
 </html>
+
 
