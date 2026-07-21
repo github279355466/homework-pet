@@ -3869,7 +3869,7 @@ function appendChatMessage(role, text) {
   const html = '<div class="chat-msg chat-msg-' + role + '">' +
     '<div class="chat-msg-bubble">' +
     '<span>' + escapeHtml(text) + '</span>' +
-    (isDragon ? '<button class="tts-btn" onclick="speakText(this.previousSibling.textContent)" style="cursor:pointer;position:relative;z-index:999;pointer-events:auto;">&#x1F50A;</button>' : '') +
+    (isDragon ? '<button class="tts-btn" data-action="speak" style="cursor:pointer;">&#x1F50A;</button>' : '') +
     '<div class="chat-msg-time" style="font-size:10px;color:#999;margin-top:4px;">' + time + '</div>' +
     '</div></div>';
 
@@ -3964,6 +3964,23 @@ function escapeHtml(text) {
     </div>
   </div>
 </div>
+
+
+<script>
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-action="speak"]');
+  if (btn) {
+    var text = btn.previousElementSibling ? btn.previousElementSibling.textContent : '';
+    if (text && window.speechSynthesis) {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'zh-CN';
+      u.rate = 0.9;
+      speechSynthesis.speak(u);
+    }
+  }
+});
+</script>
 
 </body>
 </html>
