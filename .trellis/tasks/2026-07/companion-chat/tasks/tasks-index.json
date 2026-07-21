@@ -1,0 +1,47 @@
+{
+  "project": "homework-pet",
+  "status": "done",
+  "phase": "companion-chat",
+  "tasks": [
+    {
+      "id": "CC-1",
+      "status": "done",
+      "commit": "24bea85",
+      "name": "Hermes 配置 + Profile 创建"
+    },
+    {
+      "id": "CC-2",
+      "status": "done",
+      "commit": "ffb9186",
+      "name": "chat_proxy.py HTTP 桥接"
+    },
+    {
+      "id": "CC-3",
+      "status": "done",
+      "commit": "34fc23c",
+      "name": "前端聊天面板 + 路由"
+    },
+    {
+      "id": "CC-4",
+      "status": "done",
+      "commit": "dcc331e",
+      "name": "环境变量控制 + 远程部署"
+    },
+    {
+      "id": "CC-5",
+      "status": "done",
+      "commit": "48fb537",
+      "name": "语音交互 + 算术题优化"
+    },
+    {
+      "id": "CC-6",
+      "status": "done",
+      "commit": "c45bf04",
+      "name": "CSP 修复 + 全链路测试"
+    }
+  ],
+  "started": "2026-07-18",
+  "deploy_target": "Linux 47.242.10.160:8642",
+  "name": "小龙陪聊系统（Companion Chat）",
+  "completed": "2026-07-21"
+}

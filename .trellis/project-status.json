@@ -1,9 +1,9 @@
 {
   "project": "homework-pet",
   "name_cn": "作业小龙",
-  "version": "v3.4.0",
+  "version": "v3.4.1",
   "last_updated": "2026-07-18",
-  "status": "in_progress",
+  "status": "done",
   "current_branch": "main",
   "production": {
     "platform": "Railway",
@@ -35,15 +35,15 @@
     "id": "companion-chat",
     "name": "小龙陪聊系统（Companion Chat）",
     "started": "2026-07-18",
-    "status": "in_progress",
+    "status": "done",
     "owner": "hermes",
     "branch": "main",
     "plan_doc": "docs/plans/companion-chat-plan.md",
     "deploy_target": "Linux 47.242.10.160:8642",
     "components": {
       "hermes_profile": "homework-child (deepseek-v4-flash)",
-      "proxy": "app/chat_proxy.py (待实现)",
-      "frontend": "聊天面板 (待实现)"
+      "proxy": "app/chat_proxy.py (HTTP async, env-controlled)",
+      "frontend": "聊天面板 + 语音 + Hermes 互动"
     }
   },
   "databases": {
@@ -92,3 +92,4 @@
     "handoff_date": "2026-07-08"
   }
 }
+
