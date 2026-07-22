@@ -2668,6 +2668,13 @@ async def chat_status():
     """聊天系统状态"""
     return {"hermes_found": True, "hermes_running": True, "mode": os.getenv("CHAT_PROXY_MODE", "http"), "url": os.getenv("HERMES_API_URL", "")[:50]}
 
+@app.post("/api/chat/new-session")
+async def chat_new_session():
+    """主动开启新聊天会话"""
+    return {"success": True, "message": "请在页面按钮调用 localStorage.removeItem('chat_session_id') 后刷新"}
+
+
+
 # ===== 启动 =====
 
 if __name__ == "__main__":

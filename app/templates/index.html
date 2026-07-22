@@ -3792,7 +3792,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // ===== 小龙陪聊 JS (P1.5 语音交互) =====
 // 20260719 modi by codex: Chat logic with Hermes API
 
-let chatSessionId = localStorage.getItem('chat_session_id') || null;
+let chatSessionId = localStorage.getItem('chat_session_id');
+if (!chatSessionId) {
+  chatSessionId = crypto.randomUUID();
+  localStorage.setItem('chat_session_id', chatSessionId);
+}
 let chatHistory = [];
 
 function initChat() {
