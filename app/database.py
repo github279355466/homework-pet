@@ -22,8 +22,11 @@ def _is_writable_dir(path):
         return False
 
 
-def get_database_url():
-    """返回当前数据库路径。
+_DB_URL_CACHE = None  # 进程内一次性解析并缓存，保证 init_db 与请求处理连到同一库文件
+
+
+def _resolve_database_url():
+    """解析数据库路径。
 
     优先级：
       1. HOMEWORK_PET_DB_PATH（显式指定，如 Railway Volume 挂载路径 /data/homework_pet.db）
@@ -50,6 +53,20 @@ def get_database_url():
     return DEFAULT_DATABASE_URL
 
 
+def get_database_url():
+    """返回当前数据库路径（带一次性缓存）。
+
+    关键修复（2026-07-22）：原先每次调用都重新探测卷可写性，导致
+    「导入时卷未就绪→回退镜像内库建表」与「请求时卷已就绪→连接空卷」
+    解析到**不同的库文件**，触发线上 'no such table: pet'（500）。
+    现改为进程内仅解析一次并缓存，init_db() 与所有请求必然连到同一文件。
+    """
+    global _DB_URL_CACHE
+    if _DB_URL_CACHE is None:
+        _DB_URL_CACHE = _resolve_database_url()
+    return _DB_URL_CACHE
+
+
 def _ensure_persistent_db():
     """首启种子迁移：当目标库（如 Volume 持久盘）不存在时，从镜像内 bundled 库拷贝过去。
 
@@ -63,8 +80,21 @@ def _ensure_persistent_db():
     if target == DEFAULT_DATABASE_URL:
         # 未配置持久盘，使用镜像内库，无需迁移
         return
-    if os.path.exists(target):
-        return
+    # 目标已存在：仅当它是「有效库（含 pet 表）」时才跳过，
+    # 否则可能是历史失败部署留下的空壳库，需从 bundled 重新种子迁移，避免 'no such table'。
+    if os.path.exists(target) and os.path.getsize(target) > 0:
+        try:
+            tc = sqlite3.connect(target, timeout=5)
+            has = tc.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='pet'"
+            ).fetchone()
+            tc.close()
+            if has:
+                logger.info(f"[db] 持久盘已存在有效库，跳过种子迁移: {target}")
+                return
+            logger.warning(f"[db] 持久盘库缺少 pet 表（疑似历史空壳），将从 bundled 重新种子迁移")
+        except Exception:
+            logger.warning(f"[db] 持久盘库校验失败，将从 bundled 重新种子迁移")
     source = DEFAULT_DATABASE_URL
     if not os.path.exists(source) or os.path.getsize(source) == 0:
         logger.info("[db] 未找到 bundled 源库，跳过种子迁移（将新建空库）")
@@ -556,6 +586,11 @@ def init_db():
             )
     except Exception:
         logger.exception("[init_db] 迁移调用失败（已忽略）")
+
+# 进程内一次性锁定数据库路径（必须在 init_db 之前），
+# 避免「导入时」与「请求时」卷可写性探测结果不一致导致连到不同库文件。
+_DB_URL_CACHE = _resolve_database_url()
+logger.info(f"[db] 已锁定数据库路径: {_DB_URL_CACHE}")
 
 # 持久盘种子迁移（必须在 init_db 之前，避免 Volume 首启建空库丢数据）
 _ensure_persistent_db()
