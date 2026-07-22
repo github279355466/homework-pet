@@ -10,7 +10,7 @@ logger = logging.getLogger("homework-pet")
 
 DEFAULT_DATABASE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "homework_pet.db")
 
-def _is_writable_dir(path, retries=8, delay=0.4):
+def _is_writable_dir(path, retries=15, delay=0.5):
     """探测目录是否真实可写（Railway 只读根文件系统 + 未真正挂载的卷会返回 False）。
 
     带重试：卷在 `Starting Container` 前瞬间才挂载，导入那一刻探测可能仍返回不可写，
@@ -112,6 +112,14 @@ def _ensure_persistent_db():
         return
     try:
         os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
+        # 清理历史失败部署可能残留的陈旧 WAL/SHM（指向已覆盖的旧主库，会导致损坏/幻读）
+        for ext in ("-wal", "-shm"):
+            stale = target + ext
+            if os.path.exists(stale):
+                try:
+                    os.remove(stale)
+                except Exception:
+                    pass
         # 先 checkpoint bundled 库，把 WAL 中未提交事务落盘，避免拷贝时丢失
         try:
             sc = sqlite3.connect(source, timeout=5)
@@ -618,3 +626,36 @@ init_db()
 
 # 注册退出时 checkpoint（保证配置持久盘后的后续部署零丢失）
 register_shutdown_dump()
+
+
+# ===== 自愈守卫：保证 pet 表永远存在，杜绝线上 'no such table: pet' 的 500 =====
+_DB_READY = False
+
+def ensure_db_ready():
+    """幂等自检：当前连接若缺 pet 表（极端情况下连到未初始化库），则重建 schema。
+
+    作为最后一道防线——正常路径下 init_db() 已在导入时建好所有表，本函数只是
+    「万一」路径解析历史不一致时的兜底，确保任何请求都不会因缺表而 500。
+    """
+    global _DB_READY
+    if _DB_READY:
+        return
+    conn = None
+    try:
+        conn = get_db_connection()
+        has = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='pet'"
+        ).fetchone()
+        if not has:
+            logger.warning("[db] 检测到当前库缺 pet 表，触发自愈重建 schema")
+            conn.close()
+            init_db()
+        _DB_READY = True
+    except Exception:
+        logger.exception("[db] ensure_db_ready 自检异常（已忽略，交由路由处理）")
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass

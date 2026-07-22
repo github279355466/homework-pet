@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 import pytz
 
-from database import get_db_connection, init_db, get_database_url
+from database import get_db_connection, init_db, get_database_url, ensure_db_ready
 from multi_pet import get_active_pet_id, sync_active_pet_mirror, ACHIEVEMENT_PET_REWARDS
 
 # ===== 日志配置 =====
@@ -387,6 +387,8 @@ def check_achievements(conn, streak, stage, math_streak=0, bond=50, total_focus_
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, role: str = "kid"):
     """主页"""
+    # 自愈守卫：万一连到未初始化库，先确保 pet 等表存在，避免 'no such table' 500
+    ensure_db_ready()
     conn = get_db_connection()
     pet = conn.execute("SELECT * FROM pet WHERE id = 1").fetchone()
     achievements = conn.execute("SELECT * FROM achievements ORDER BY id").fetchall()
