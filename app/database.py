@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import shutil
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
@@ -9,8 +10,90 @@ logger = logging.getLogger("homework-pet")
 DEFAULT_DATABASE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "homework_pet.db")
 
 def get_database_url():
-    """返回当前数据库路径。默认使用真实数据库，测试可通过环境变量隔离。"""
-    return os.environ.get("HOMEWORK_PET_DB_PATH", DEFAULT_DATABASE_URL)
+    """返回当前数据库路径。
+
+    优先级：
+      1. HOMEWORK_PET_DB_PATH（显式指定，如 Railway Volume 挂载路径 /data/homework_pet.db）
+      2. RAILWAY_VOLUME_MOUNT_PATH 环境变量（Railway 挂卷后自动注入）下的 homework_pet.db
+      3. 默认 app/homework_pet.db（镜像内 bundled，部署后临时盘，重启会丢）
+    测试可通过环境变量隔离。
+    """
+    env = os.environ.get("HOMEWORK_PET_DB_PATH")
+    if env:
+        return env
+    vol = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+    if vol:
+        return os.path.join(vol, "homework_pet.db")
+    return DEFAULT_DATABASE_URL
+
+
+def _ensure_persistent_db():
+    """首启种子迁移：当目标库（如 Volume 持久盘）不存在时，从镜像内 bundled 库拷贝过去。
+
+    这是消除「部署丢数据」的核心：Railway 临时盘在每次重新部署时会被重置为镜像状态，
+    若直接连 Volume 路径且卷为空，init_db() 会建一个空库。本函数在 init_db() 之前把
+    现有（bundled）数据搬到持久盘，保证首次挂载 Volume 也不丢数据。
+
+    仅拷贝一次；目标已存在则跳过（幂等）。
+    """
+    target = get_database_url()
+    if target == DEFAULT_DATABASE_URL:
+        # 未配置持久盘，使用镜像内库，无需迁移
+        return
+    if os.path.exists(target):
+        return
+    source = DEFAULT_DATABASE_URL
+    if not os.path.exists(source) or os.path.getsize(source) == 0:
+        logger.info("[db] 未找到 bundled 源库，跳过种子迁移（将新建空库）")
+        return
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(target)), exist_ok=True)
+        # 先 checkpoint bundled 库，把 WAL 中未提交事务落盘，避免拷贝时丢失
+        try:
+            sc = sqlite3.connect(source, timeout=5)
+            sc.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            sc.close()
+        except Exception:
+            pass
+        shutil.copy2(source, target)
+        for ext in ("-wal", "-shm"):
+            sp = source + ext
+            if os.path.exists(sp):
+                shutil.copy2(sp, target + ext)
+        logger.info(f"[db] 已从镜像内库种子迁移到持久盘: {target}")
+    except Exception:
+        logger.exception("[db] 种子迁移失败（将使用空库，请检查持久盘权限/挂载）")
+
+
+def register_shutdown_dump():
+    """注册退出信号处理：容器被 Railway 停止(SIGTERM)前，对持久盘库做 wal_checkpoint。
+
+    保证**配置持久盘之后**的每次部署零丢失——运行时写入直接落在 Volume 文件，
+    退出前 flush WAL 即可避免被 SIGKILL 前的极小窗口丢未提交事务。
+    未配置持久盘时为空操作。
+    """
+    target = get_database_url()
+    if target == DEFAULT_DATABASE_URL:
+        return
+    parent = os.path.dirname(os.path.abspath(target))
+    if not parent or not os.path.isdir(parent):
+        return
+
+    def _on_exit(signum, frame):
+        try:
+            sc = sqlite3.connect(target, timeout=5)
+            sc.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            sc.close()
+            logger.info(f"[db] 收到退出信号 {signum}，已 checkpoint 持久盘: {target}")
+        except Exception:
+            logger.exception("[db] 退出前 checkpoint 失败")
+
+    try:
+        import signal
+        signal.signal(signal.SIGTERM, _on_exit)
+        signal.signal(signal.SIGINT, _on_exit)
+    except Exception:
+        logger.warning("[db] 无法注册退出信号处理（平台可能不支持），部署零丢失需依赖 WAL 自动恢复")
 
 def get_db_connection():
     conn = sqlite3.connect(get_database_url(), timeout=10)
@@ -451,5 +534,11 @@ def init_db():
     except Exception:
         logger.exception("[init_db] 迁移调用失败（已忽略）")
 
+# 持久盘种子迁移（必须在 init_db 之前，避免 Volume 首启建空库丢数据）
+_ensure_persistent_db()
+
 # 初始化数据库
 init_db()
+
+# 注册退出时 checkpoint（保证配置持久盘后的后续部署零丢失）
+register_shutdown_dump()

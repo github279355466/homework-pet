@@ -10,13 +10,13 @@ import logging
 from datetime import datetime, timedelta, date
 from typing import Optional
 from fastapi import FastAPI, Request, Form, UploadFile, File, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 import pytz
 
-from database import get_db_connection, init_db
+from database import get_db_connection, init_db, get_database_url
 from multi_pet import get_active_pet_id, sync_active_pet_mirror, ACHIEVEMENT_PET_REWARDS
 
 # ===== 日志配置 =====
@@ -2781,6 +2781,40 @@ async def chat_tts(request: Request):
     except Exception as e:
         logger.error("语音合成失败: %s", e)
         return JSONResponse({"error": f"语音合成失败：{e}"}, status_code=500)
+
+
+@app.get("/api/admin/db-export")
+async def admin_db_export(pwd: str = ""):
+    """【迁移专用】一次性导出当前线上数据库文件（家长密码保护）。
+
+    用途：将数据库挪到 Railway Volume 前，先调用本接口把「此刻真实运行的数据」
+    下载下来，覆盖仓库内的 app/homework_pet.db 并提交，再做 Volume 挂载，
+    即可实现**首次部署也零丢失**（否则卷首次为空、init_db 会建空库，
+    丢失自上次提交以来的运行时数据）。
+
+    安全：必须传正确的家长密码（parent_settings.parent_password），错误返回 403。
+    挂载 Volume 并稳定后，此接口可保留（家长密码保护）也可删除，不影响运行。
+    """
+    conn = get_db_connection()
+    try:
+        row = conn.execute("SELECT value FROM parent_settings WHERE key = 'parent_password'").fetchone()
+    finally:
+        conn.close()
+    stored = row['value'] if row else '1234'
+    if pwd != stored:
+        return JSONResponse({"success": False, "message": "家长密码错误"}, status_code=403)
+    # checkpoint 确保 WAL 中未提交事务落盘，导出文件才完整
+    try:
+        sc = sqlite3.connect(get_database_url(), timeout=5)
+        sc.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        sc.close()
+    except Exception:
+        pass
+    db_path = get_database_url()
+    if not os.path.exists(db_path):
+        return JSONResponse({"success": False, "message": "数据库文件不存在"}, status_code=404)
+    logger.info("管理员导出数据库: %s", db_path)
+    return FileResponse(db_path, filename="homework_pet_export.db", media_type="application/octet-stream")
 
 
 # ===== 启动 =====
