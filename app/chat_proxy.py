@@ -6,7 +6,9 @@ app/chat_proxy.py - Hermes Bridge (异步流式)
 import os
 import re
 import time
+import json
 import logging
+import httpx
 
 logger = logging.getLogger("homework-pet.chat_proxy")
 
@@ -71,8 +73,6 @@ def build_context(pet_mood, today_tasks):
 
 async def call_hermes(messages, session_id=None):
     """调用 Hermes API Server — 不传 model，用 profile 默认"""
-    import httpx
-
     headers = {"Content-Type": "application/json"}
     if HERMES_API_KEY:
         headers["Authorization"] = f"Bearer {HERMES_API_KEY}"
@@ -120,3 +120,43 @@ async def chat(message, session_id=None, pet_mood=None, today_tasks=None):
         "mood": detect_mood_from_text(full_text),
         "blocked": False,
     }
+
+
+async def call_hermes_stream(messages, session_id=None):
+    """流式调用 Hermes（stream:True），逐块 yield 文本片段。
+
+    解析 Hermes 的 OpenAI 兼容 SSE：每行 `data: {...}`，其中
+    choices[0].delta.content 为增量文本；结束行为 `data: [DONE]`。
+    若 Hermes 不支持流式或连接失败，抛出原异常，由路由层降级处理。
+    """
+    headers = {"Content-Type": "application/json"}
+    if HERMES_API_KEY:
+        headers["Authorization"] = f"Bearer {HERMES_API_KEY}"
+
+    payload = {
+        "messages": messages,
+        "stream": True,
+        "temperature": 0.8,
+    }
+    if session_id:
+        payload["session_id"] = session_id
+
+    async with httpx.AsyncClient(timeout=float(HERMES_TIMEOUT)) as client:
+        async with client.stream("POST", HERMES_API_URL, json=payload, headers=headers) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                line = (line or "").strip()
+                if not line or not line.startswith("data:"):
+                    continue
+                data_str = line[len("data:"):].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    data = json.loads(data_str)
+                except Exception:
+                    continue
+                choices = data.get("choices") or [{}]
+                delta = (choices[0] or {}).get("delta") or {}
+                content = delta.get("content") or ""
+                if content:
+                    yield content

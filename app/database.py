@@ -532,7 +532,7 @@ def init_db():
         """, settings)
     else:
         # 兼容：补充 v3.2 新设置
-        for key, val in [('parent_password', '1234'), ('school_end_time', '16:00'), ('skins_enabled', '1')]:
+        for key, val in [('parent_password', '1234'), ('school_end_time', '16:00'), ('skins_enabled', '1'), ('voice_chat_enabled', '1')]:
             existing = cursor.execute("SELECT key FROM parent_settings WHERE key = ?", (key,)).fetchone()
             if not existing:
                 cursor.execute("INSERT INTO parent_settings (key, value) VALUES (?, ?)", (key, val))

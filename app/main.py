@@ -10,7 +10,7 @@ import logging
 from datetime import datetime, timedelta, date
 from typing import Optional
 from fastapi import FastAPI, Request, Form, UploadFile, File, Response
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
@@ -2623,7 +2623,16 @@ async def daily_signin():
 # ===== 小龙陪聊 API (Companion Chat) =====
 # 20260719 modi by codex: 聊天代理路由，转发 Hermes
 
-from chat_proxy import chat as hermes_chat, call_hermes
+import chat_proxy
+from chat_proxy import (
+    chat as hermes_chat,
+    call_hermes,
+    call_hermes_stream,
+    detect_mood_from_text,
+    build_context,
+    filter_input,
+    check_rate_limit,
+)
 from speech import get_asr_provider, get_tts_provider
 
 
@@ -2656,22 +2665,89 @@ def _get_today_tasks_for_chat():
 
 @app.post("/api/chat/message")
 async def chat_message(request: Request):
-    """聊天消息入口"""
-    data = await request.json()
-    user_text = data.get("text", "").strip()
+    """聊天消息入口（SSE 流式）。
+
+    请求体 JSON：{"text": "...", "session_id": "...", "mode": "text"|"voice"}
+    响应：text/event-stream，每帧形如 `data: {json}\n\n`
+      - {"type":"token","text":"..."}   增量文本（多次）
+      - {"type":"error","text":"..."}   降级提示（Hermes 不可用时一次性）
+      - {"type":"done","text":"...","session_id":"...","mood":"..."} 结束
+    前端用 fetch + ReadableStream 解析；TTS 由前端在收到 done 后调 /api/chat/tts。
+    """
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+    user_text = (data.get("text") or "").strip()
     if not user_text:
         return JSONResponse({"error": "Empty message"}, status_code=400)
     session_id = data.get("session_id")
+    mode = data.get("mode", "text")
+
+    # 安全过滤 + 限流（复用 chat_proxy 既有逻辑）
+    clean_text, blocked = filter_input(user_text)
+    if blocked:
+        async def _blocked():
+            yield "data: " + json.dumps({"type": "done", "text": "这个话题不适合聊哦", "session_id": session_id or "", "mood": "gentle_refuse"}, ensure_ascii=False) + "\n\n"
+        return StreamingResponse(_blocked(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    if not check_rate_limit():
+        async def _ratelimit():
+            yield "data: " + json.dumps({"type": "done", "text": "说太快啦，让小龙头休息一下", "session_id": session_id or "", "mood": "overwhelmed"}, ensure_ascii=False) + "\n\n"
+        return StreamingResponse(_ratelimit(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
     pet_state = _get_pet_state_for_chat()
     tasks = _get_today_tasks_for_chat()
-    result = await hermes_chat(message=user_text, session_id=session_id, pet_mood=pet_state, today_tasks=tasks)
-    return JSONResponse({"text": result["text"], "session_id": result.get("session_id", ""), "pet_mood": result.get("mood", "normal"), "blocked": result.get("blocked", False)})
+    msgs = []
+    if pet_state or tasks:
+        ctx = build_context(pet_state, tasks)
+        msgs.append({"role": "system", "content": ctx})
+    msgs.append({"role": "user", "content": clean_text})
+
+    async def event_gen():
+        full = []
+        try:
+            async for chunk in chat_proxy.call_hermes_stream(msgs, session_id=session_id):
+                full.append(chunk)
+                yield "data: " + json.dumps({"type": "token", "text": chunk}, ensure_ascii=False) + "\n\n"
+        except Exception as e:
+            logger.error("聊天流式失败: %s", e)
+            fallback = "小龙正在休息，请稍后重试～"
+            # 若已经流出部分内容，则补全；否则直接给降级提示
+            if full:
+                yield "data: " + json.dumps({"type": "done", "text": "".join(full), "session_id": session_id or "", "mood": "normal"}, ensure_ascii=False) + "\n\n"
+            else:
+                yield "data: " + json.dumps({"type": "done", "text": fallback, "session_id": session_id or "", "mood": "normal"}, ensure_ascii=False) + "\n\n"
+            return
+        final = "".join(full)
+        mood = detect_mood_from_text(final)
+        yield "data: " + json.dumps({"type": "done", "text": final, "session_id": session_id or "", "mood": mood}, ensure_ascii=False) + "\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/api/chat/status")
 async def chat_status():
     """聊天系统状态"""
-    return {"hermes_found": True, "hermes_running": True, "mode": os.getenv("CHAT_PROXY_MODE", "http"), "url": os.getenv("HERMES_API_URL", "")[:50]}
+    voice_enabled = "1"
+    try:
+        conn = get_db_connection()
+        row = conn.execute("SELECT value FROM parent_settings WHERE key = 'voice_chat_enabled'").fetchone()
+        if row:
+            voice_enabled = row["value"]
+        conn.close()
+    except Exception:
+        pass
+    return {
+        "hermes_found": True,
+        "hermes_running": True,
+        "mode": os.getenv("CHAT_PROXY_MODE", "http"),
+        "url": os.getenv("HERMES_API_URL", "")[:50],
+        "voice_enabled": voice_enabled == "1",
+    }
 
 @app.post("/api/chat/new-session")
 async def chat_new_session():

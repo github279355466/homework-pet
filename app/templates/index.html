@@ -1346,6 +1346,14 @@
 #chatInput:focus { border-color:#ff8a65; }
 #chatSendBtn { padding:10px 24px; background:linear-gradient(135deg,#ff8a65,#ffd54f); color:#fff; border:none; border-radius:24px; font-weight:600; cursor:pointer; transition:transform .1s; position:relative; z-index:101; }
 #chatSendBtn:active { transform:scale(0.95); }
+.chat-mic-btn { width:44px; height:44px; border-radius:50%; border:2px solid #e0e0e0; background:#fff; font-size:20px; cursor:pointer; transition:all .15s; flex:0 0 auto; }
+.chat-mic-btn.active { background:linear-gradient(135deg,#ff8a65,#ffd54f); border-color:#ff8a65; }
+.chat-hold-btn { width:100%; padding:14px; border:none; border-radius:24px; background:linear-gradient(135deg,#ff8a65,#ffab91); color:#fff; font-size:16px; font-weight:600; cursor:pointer; user-select:none; touch-action:none; }
+.chat-hold-btn.recording { background:linear-gradient(135deg,#ef5350,#ff8a65); animation:pulse-rec 1s infinite; }
+@keyframes pulse-rec { 0%{transform:scale(1);} 50%{transform:scale(1.03);} 100%{transform:scale(1);} }
+.chat-rec-hint { text-align:center; font-size:13px; color:#ef5350; padding:4px; background:#fff3f2; }
+.tts-btn { border:none; background:transparent; font-size:16px; margin-left:6px; padding:0 4px; cursor:pointer; }
+.tts-btn:hover { transform:scale(1.15); }
 @keyframes chat-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .chat-avatar-bounce { animation: chat-bounce 0.6s ease; }
 .tts-btn{background:none;border:none;cursor:pointer;font-size:16px;margin-left:6px;vertical-align:middle;pointer-events:auto!important;position:relative;z-index:999;}
@@ -3798,15 +3806,25 @@ if (!chatSessionId) {
   localStorage.setItem('chat_session_id', chatSessionId);
 }
 let chatHistory = [];
+let chatMode = localStorage.getItem('chat_mode') || 'text'; // 'text' | 'voice'
+let chatVoiceEnabled = true; // 由 /api/chat/status 决定；false 时隐藏语音入口
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
 
 function initChat() {
-  // Init chat: bind send button, load history
-  const btn = document.getElementById('chatSendBtn');
   const input = document.getElementById('chatInput');
   if (input) {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChatMessage(); });
   }
-  // Check backend status
+  // 语音「按住说话」绑定（指针事件兼容触屏/鼠标）
+  const holdBtn = document.getElementById('chatHoldBtn');
+  if (holdBtn) {
+    holdBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); startRecording(); });
+    holdBtn.addEventListener('pointerup', () => stopRecording());
+    holdBtn.addEventListener('pointerleave', () => { if (isRecording) stopRecording(); });
+  }
+  applyChatMode();
   checkChatStatus();
 }
 
@@ -3815,70 +3833,250 @@ async function checkChatStatus() {
     const resp = await fetch('/api/chat/status');
     const data = await resp.json();
     const statusEl = document.getElementById('chatPetStatus');
-    if (statusEl) {
-      statusEl.textContent = data.hermes_found ? '🟢 在线' : '🔴 离线';
-    }
+    if (statusEl) statusEl.textContent = data.hermes_found ? '🟢 在线' : '🔴 离线';
+    chatVoiceEnabled = data.voice_enabled !== false;
+    applyChatMode();
   } catch (e) {}
 }
 
+function applyChatMode() {
+  const textDiv = document.getElementById('chatTextMode');
+  const voiceDiv = document.getElementById('chatVoiceMode');
+  const micBtn = document.getElementById('chatMicBtn');
+  if (!chatVoiceEnabled) {
+    // 家长禁用了语音：强制文字模式并隐藏语音入口
+    chatMode = 'text';
+    if (micBtn) micBtn.style.display = 'none';
+  } else if (micBtn) {
+    micBtn.style.display = '';
+  }
+  if (textDiv) textDiv.style.display = (chatMode === 'text') ? 'flex' : 'none';
+  if (voiceDiv) voiceDiv.style.display = (chatMode === 'voice') ? 'block' : 'none';
+  if (micBtn) micBtn.classList.toggle('active', chatMode === 'voice');
+}
+
+function toggleVoiceMode() {
+  if (!chatVoiceEnabled) return;
+  chatMode = (chatMode === 'voice') ? 'text' : 'voice';
+  localStorage.setItem('chat_mode', chatMode);
+  applyChatMode();
+}
+
+// ============ 发送（文字模式入口） ============
 async function sendChatMessage() {
   const input = document.getElementById('chatInput');
-  const text = input.value.trim();
+  const text = (input ? input.value : '').trim();
   if (!text) return;
-
-  // Render user message
-  appendChatMessage('user', text);
   input.value = '';
-  showDragonTyping(true);
+  await streamChat(text, chatMode);
+}
 
+// ============ 录音（语音模式入口） ============
+async function startRecording() {
+  if (isRecording) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+      await sendVoice(blob);
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    const hint = document.getElementById('chatRecHint');
+    if (hint) hint.style.display = 'block';
+    const hold = document.getElementById('chatHoldBtn');
+    if (hold) hold.classList.add('recording');
+  } catch (e) {
+    appendChatMessage('dragon', '没权限用麦克风哦～可以在浏览器允许麦克风，或者打字跟我聊。');
+    console.error('getUserMedia failed:', e);
+  }
+}
+
+function stopRecording() {
+  if (!mediaRecorder || !isRecording) return;
+  try { mediaRecorder.stop(); } catch (e) {}
+  isRecording = false;
+  const hint = document.getElementById('chatRecHint');
+  if (hint) hint.style.display = 'none';
+  const hold = document.getElementById('chatHoldBtn');
+  if (hold) hold.classList.remove('recording');
+}
+
+// 录音 -> ASR(/api/chat/voice) -> 流式聊天（语音模式自动 TTS 播放）
+async function sendVoice(blob) {
+  showDragonTyping(true);
+  appendChatMessage('user', '🎤 (识别中…)');
+  const userMsgs = document.querySelectorAll('#chatMessages .chat-msg-user');
+  const lastUser = userMsgs[userMsgs.length - 1];
+  try {
+    const fd = new FormData();
+    fd.append('file', blob, 'rec.webm');
+    const resp = await fetch('/api/chat/voice', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (data.error) {
+      showDragonTyping(false);
+      if (lastUser) lastUser.remove();
+      appendChatMessage('dragon', '语音识别出错了：' + data.error + ' 你可以打字告诉我哦～');
+      return;
+    }
+    if (data.empty) {
+      showDragonTyping(false);
+      if (lastUser) lastUser.remove();
+      appendChatMessage('dragon', '没听清呀，再说一次好吗？');
+      return;
+    }
+    const text = data.text;
+    if (lastUser) {
+      const span = lastUser.querySelector('.chat-msg-bubble span');
+      if (span) span.textContent = text;
+    }
+    await streamChat(text, 'voice');
+  } catch (e) {
+    showDragonTyping(false);
+    if (lastUser) lastUser.remove();
+    appendChatMessage('dragon', '网络好像断了，再试一次吧～');
+    console.error('voice send error:', e);
+  }
+}
+
+// ============ SSE 流式聊天 ============
+async function streamChat(text, mode) {
+  appendChatMessage('user', text);
+  showDragonTyping(true);
+  const dragonEl = appendStreamingDragon();
+  const span = dragonEl.querySelector('.chat-msg-bubble .stream-text');
+  let full = '';
   try {
     const resp = await fetch('/api/chat/message', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ text: text, session_id: chatSessionId })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text, session_id: chatSessionId, mode: mode })
     });
-
-    const result = await resp.json();
+    if (!resp.ok || !resp.body) throw new Error('no stream');
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) >= 0) {
+        const frame = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        const dataLine = frame.split('\n').find(l => l.startsWith('data:'));
+        if (!dataLine) continue;
+        let payload;
+        try { payload = JSON.parse(dataLine.slice(5).trim()); } catch (_) { continue; }
+        if (payload.type === 'token') {
+          full += payload.text;
+          span.textContent = full;
+          scrollChatToBottom();
+        } else if (payload.type === 'done') {
+          full = payload.text;
+          span.textContent = full;
+          if (payload.session_id) {
+            chatSessionId = payload.session_id;
+            localStorage.setItem('chat_session_id', chatSessionId);
+          }
+          if (payload.mood) updateChatMood(payload.mood);
+        } else if (payload.type === 'error') {
+          full = payload.text;
+          span.textContent = full;
+        }
+      }
+    }
     showDragonTyping(false);
-
-    if (result.error) {
-      appendChatMessage('dragon', '小龙暂时无法回应：' + result.error);
-      return;
-    }
-
-    // Update persisted session ID
-    if (result.session_id) {
-      chatSessionId = result.session_id;
-      localStorage.setItem('chat_session_id', chatSessionId);
-    }
-
-    // Render dragon response
-    appendChatMessage('dragon', result.text);
-
-    // Update dragon mood/avatar
-    if (result.pet_mood) updateChatMood(result.pet_mood);
-
+    finalizeDragon(dragonEl, full);
+    // 语音模式：自动朗读回复
+    if (mode === 'voice') playTts(full);
   } catch (e) {
     showDragonTyping(false);
-    appendChatMessage('dragon', '小龙断线了，检查网络再试一下吧～');
-    console.error('Chat error:', e);
+    if (!full) full = '小龙断线了，检查网络再试一下吧～';
+    span.textContent = full;
+    finalizeDragon(dragonEl, full);
+    console.error('chat stream error:', e);
   }
+}
+
+function appendStreamingDragon() {
+  const container = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  el.className = 'chat-msg chat-msg-dragon';
+  const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  el.innerHTML = '<div class="chat-msg-bubble">' +
+    '<span class="stream-text"></span>' +
+    '<button class="tts-btn" style="cursor:pointer;">&#x1F50A;</button>' +
+    '<div class="chat-msg-time" style="font-size:10px;color:#999;margin-top:4px;">' + time + '</div>' +
+    '</div>';
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+  return el;
+}
+
+function finalizeDragon(el, text) {
+  if (el) el.querySelector('.chat-msg-bubble').setAttribute('data-text', text);
+}
+
+function scrollChatToBottom() {
+  const container = document.getElementById('chatMessages');
+  if (container) container.scrollTop = container.scrollHeight;
+}
+
+// ============ TTS 播放（服务端百度合成，失败回退浏览器） ============
+async function playTts(text) {
+  if (!text) return;
+  try {
+    const resp = await fetch('/api/chat/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text })
+    });
+    if (!resp.ok) throw new Error('tts ' + resp.status);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => URL.revokeObjectURL(url);
+    await audio.play();
+  } catch (e) {
+    console.warn('服务端 TTS 失败，回退浏览器朗读:', e);
+    speakTextFallback(text);
+  }
+}
+
+function speakTextFallback(text) {
+  if (!text || !window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'zh-CN';
+  u.rate = 0.9;
+  u.volume = 1;
+  const voices = speechSynthesis.getVoices();
+  const zhVoice = voices.find(v => v.lang && v.lang.startsWith('zh'));
+  if (zhVoice) u.voice = zhVoice;
+  speechSynthesis.speak(u);
 }
 
 function appendChatMessage(role, text) {
   const container = document.getElementById('chatMessages');
   const isDragon = role === 'dragon';
   const time = new Date().toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
-
   const html = '<div class="chat-msg chat-msg-' + role + '">' +
-    '<div class="chat-msg-bubble">' +
+    '<div class="chat-msg-bubble"' + (isDragon ? ' data-text="' + escapeAttr(text) + '"' : '') + '>' +
     '<span>' + escapeHtml(text) + '</span>' +
-    (isDragon ? '<button class="tts-btn" data-action="speak" style="cursor:pointer;pointer-events:auto!important;">&#x1F50A;</button>' : '') +
+    (isDragon ? '<button class="tts-btn" style="cursor:pointer;">&#x1F50A;</button>' : '') +
     '<div class="chat-msg-time" style="font-size:10px;color:#999;margin-top:4px;">' + time + '</div>' +
     '</div></div>';
-
   container.insertAdjacentHTML('beforeend', html);
   container.scrollTop = container.scrollHeight;
+}
+
+function escapeAttr(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function showDragonTyping(show) {
@@ -3915,25 +4113,6 @@ function updateChatMood(mood) {
   }
 }
 
-function speakText(text) {
-  if (!text || !window.speechSynthesis) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'zh-CN';
-  u.rate = 0.9;
-  u.volume = 1;
-  // 尝试获取中文语音
-  const voices = speechSynthesis.getVoices();
-  const zhVoice = voices.find(v => v.lang.startsWith('zh'));
-  if (zhVoice) u.voice = zhVoice;
-  speechSynthesis.speak(u);
-}
-// 预加载语音列表
-if (window.speechSynthesis) {
-  speechSynthesis.getVoices();
-  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
-}
-
 function escapeHtml(text) {
   const d = document.createElement('div');
   d.textContent = text;
@@ -3962,26 +4141,29 @@ function escapeHtml(text) {
         </div>
       </div>
     </div>
-    <div class="chat-input-bar">
-      <input type="text" id="chatInput" maxlength="500" placeholder="跟小龙说话吧～(长按输入框可微信语音输入)" />
-      <button id="chatSendBtn" onclick="sendChatMessage()">发送</button>
+    <div class="chat-input-bar" id="chatInputBar">
+      <button id="chatMicBtn" class="chat-mic-btn" title="切换语音/文字模式" onclick="toggleVoiceMode()">🎤</button>
+      <div id="chatTextMode" style="display:flex;flex:1;gap:8px;">
+        <input type="text" id="chatInput" maxlength="500" placeholder="跟小龙说话吧～" />
+        <button id="chatSendBtn" onclick="sendChatMessage()">发送</button>
+      </div>
+      <div id="chatVoiceMode" style="display:none;flex:1;">
+        <button id="chatHoldBtn" class="chat-hold-btn">🎙️ 按住说话</button>
+      </div>
     </div>
+    <div id="chatRecHint" class="chat-rec-hint" style="display:none;">🎧 正在听…松开结束</div>
   </div>
 </div>
 
 
 <script>
+// 🔊 按钮统一走服务端百度 TTS（playTts 定义在上方聊天脚本，全局可用）
 document.addEventListener('click', function(e) {
-  var btn = e.target.closest('[data-action="speak"]');
+  var btn = e.target.closest('.tts-btn');
   if (btn) {
-    var text = btn.previousElementSibling ? btn.previousElementSibling.textContent : '';
-    if (text && window.speechSynthesis) {
-      speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(text);
-      u.lang = 'zh-CN';
-      u.rate = 0.9;
-      speechSynthesis.speak(u);
-    }
+    var bubble = btn.closest('.chat-msg-bubble');
+    var text = bubble ? bubble.getAttribute('data-text') : '';
+    if (text) playTts(text);
   }
 });
 </script>

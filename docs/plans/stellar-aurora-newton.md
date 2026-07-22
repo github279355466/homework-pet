@@ -257,13 +257,13 @@ BAIDU_TTS_PER=110                 # 童声(度小童)；短文本默认 4(度丫
 |---|---|---|---|
 | T1 | 后端 ASR 接入 ✅ | `main.py`(`/api/chat/voice`) + `_transcode_to_wav`(ffmpeg→16k mono wav) + `app/speech/baidu_asr.py` + Railway 密钥已配 | curl/前端上传录音返回正确中文文本；本地 mock 9/9 通过 |
 | T2 | 后端 TTS 接入 ✅ | `main.py`(`/api/chat/tts`) + `app/speech/baidu_tts.py`(短文本整句，per=4 度丫丫) + `baidu_tts_stream.py`(WebSocket 流式童声 per=110) | 浏览器/Postman 播放返回 audio/mpeg；`SPEECH_TTS_MODE=stream` 启用流式 |
-| T3 | 后端改 SSE 流式 | `chat_proxy.py`(call_hermes_stream) + `main.py`(改返回 media_type) | 前端能逐字收到 content |
-| T4 | 前端采集+上传+识别态 | `index.html`(录音按钮/状态机/MediaRecorder) | 微信内可录音→识别→自动发送 |
-| T5 | 前端流式 TTS 播放 | `index.html`(句切分+队列+音量+中断恢复) | 首句优先播放、可中断续播 |
-| T6 | 模式切换 UI+权限引导 | `index.html`(切换控件/Toast/动画) | 文本↔语音切换无刷新、历史保留 |
-| T7 | 兼容/降级/弱网 | `index.html`+`chat_proxy.py` | 拒权/离线/失败均优雅降级 |
-| T8 | 联调+真机(微信)测试 | 全量 | 微信内端到端语音对话可用 |
-| T9 | 文档+trellis 地图更新 | `docs/` + `.workbuddy/memory` | 更新导航总结 |
+| T3 | 后端改 SSE 流式 ✅ | `chat_proxy.py`(call_hermes_stream) + `main.py`(`/api/chat/message` 改 StreamingResponse) | 前端能逐字收到 content（SSE 帧解析单测通过） |
+| T4 | 前端采集+上传+识别态 ✅ | `index.html`(🎤切换+按住说话+MediaRecorder→/api/chat/voice) | 录音→识别→自动发送；识别中占位+失败回退文字 |
+| T5 | 前端 TTS 播放 ✅ | `index.html`(playTts→/api/chat/tts→Audio 播放；语音模式自动朗读回复；🔊按钮可手动听) | 服务端百度 TTS 播放；失败回退浏览器 speechSynthesis |
+| T6 | 模式切换 UI+权限引导 ✅ | `index.html`(chatMode 切换+localStorage)+`main.py`(`/api/chat/status` 返回 voice_enabled)+`database.py`(`parent_settings.voice_chat_enabled` 默认1) | 文本↔语音切换无刷新；家长可在 parent_settings 置 0 禁用语音入口 |
+| T7 | 兼容/降级/弱网 ✅ | `index.html`+`chat_proxy.py`+`main.py` | ASR 失败→回退打字；TTS 失败→静默+浏览器兜底；SSE 中断→错误气泡；Hermes 不可用时整段降级 |
+| T8 | 联调+真机测试 | 全量（待用户真机/手机浏览器验证） | 端到端语音对话可用 |
+| T9 | 文档+地图更新 ✅ | `docs/plans/stellar-aurora-newton.md` + `.workbuddy/memory` | 本表即更新结果 |
 
 ### 4.1 后端路由契约（T1/T2 已实现，2026-07-22）
 
@@ -283,7 +283,22 @@ BAIDU_TTS_PER=110                 # 童声(度小童)；短文本默认 4(度丫
 - 失败：`{"error": "..."}`，HTTP 500；无密钥走 `MockTTS`（ID3 头占位字节）
 - 文本安全上限 512 字（百度短文本单次 1024GBK 字节约束）
 
-> 前端调用顺序（语音对话一次）：录音 → POST `/api/chat/voice` 得文本 → POST `/api/chat/message` 得小龙回复 → POST `/api/chat/tts` 得语音 → `<audio>`/Web Audio 播放。
+**POST /api/chat/message（T3 SSE 流式，2026-07-22 改造）**
+- 入参（JSON）：`{"text": "...", "session_id": "...", "mode": "text"|"voice"}`
+- 响应：`Content-Type: text/event-stream`，带 `Cache-Control: no-cache`、`X-Accel-Buffering: no`
+- 每帧格式：`data: {json}\n\n`
+  - `{"type":"token","text":"..."}` —— 增量文本片段，多次
+  - `{"type":"error","text":"..."}` —— 降级提示（Hermes 不可用时一次性；当前实现并入 done）
+  - `{"type":"done","text":"...","session_id":"...","mood":"..."}` —— 结束帧，含完整文本
+- 前端用 `fetch` + `response.body.getReader()` 解析 SSE；收到 `done` 后若 `mode==="voice"` 自动调 `/api/chat/tts` 朗读
+- Hermes 不可用时：已流出部分则补全 `done`，否则发降级提示 `done`（"小龙正在休息…"）
+- 空消息/限流/敏感词：直接返回单帧 `done`（无需流式）
+
+**GET /api/chat/status（T6 扩展）**
+- 返回：`{"hermes_found":true,"hermes_running":true,"mode":"http","voice_enabled":true/false,...}`
+- `voice_enabled` 取自 `parent_settings.voice_chat_enabled`（默认 "1"）；前端据此显示/隐藏语音入口
+
+> 前端调用顺序（语音对话一次）：录音 → POST `/api/chat/voice` 得文本 → POST `/api/chat/message`(SSE) 得小龙回复（边出边显示）→ 收到 `done` 且语音模式 → POST `/api/chat/tts` 得语音 → `<audio>` 播放。
 
 ---
 
