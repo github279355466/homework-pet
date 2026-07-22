@@ -1,0 +1,33 @@
+# Git / CI
+.git
+.github
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+
+# Local/backup DB files
+*.db-wal
+*.db-shm
+*.db-journal
+pre_*.db
+backups/
+
+# Scripts not needed at runtime (optional; keep if you want them in image)
+# scripts/
+
+# Editor / OS
+.vscode
+.idea
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+nul
