@@ -9,6 +9,19 @@ logger = logging.getLogger("homework-pet")
 
 DEFAULT_DATABASE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "homework_pet.db")
 
+def _is_writable_dir(path):
+    """探测目录是否真实可写（Railway 只读根文件系统 + 未真正挂载的卷会返回 False）。"""
+    try:
+        os.makedirs(path, exist_ok=True)
+        probe = os.path.join(path, ".hwpet_writetest")
+        with open(probe, "w") as f:
+            f.write("ok")
+        os.remove(probe)
+        return True
+    except Exception:
+        return False
+
+
 def get_database_url():
     """返回当前数据库路径。
 
@@ -17,13 +30,23 @@ def get_database_url():
       2. RAILWAY_VOLUME_MOUNT_PATH 环境变量（Railway 挂卷后自动注入）下的 homework_pet.db
       3. 默认 app/homework_pet.db（镜像内 bundled，部署后临时盘，重启会丢）
     测试可通过环境变量隔离。
+
+    健壮性：若卷挂载点经探测「不可写」（未真正挂载 / 只读根），则**回退**到镜像内库，
+    避免 init_db() 连到不存在的目录而崩溃导致整个服务起不来（曾经因此 healthcheck 全失败）。
     """
     env = os.environ.get("HOMEWORK_PET_DB_PATH")
     if env:
-        return env
+        parent = os.path.dirname(os.path.abspath(env))
+        if _is_writable_dir(parent):
+            return env
+        logger.warning(f"[db] HOMEWORK_PET_DB_PATH 父目录不可写: {parent}，回退镜像内库")
+        return DEFAULT_DATABASE_URL
     vol = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
     if vol:
-        return os.path.join(vol, "homework_pet.db")
+        if _is_writable_dir(vol):
+            return os.path.join(vol, "homework_pet.db")
+        logger.warning(f"[db] 卷挂载点不可写（未真正挂载？）: {vol}，回退镜像内库")
+        return DEFAULT_DATABASE_URL
     return DEFAULT_DATABASE_URL
 
 

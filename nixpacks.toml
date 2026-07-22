@@ -1,6 +1,15 @@
 # Railway / Nixpacks 构建配置
 # 语音功能需要 ffmpeg 把浏览器录音(webm/mp4/aac) 转码为百度 ASR 要求的 16k 单声道 wav。
-# Railway 默认 Python 镜像不含 ffmpeg；用 nixPkgs 安装。
-# "..." 保留 provider 默认包（python 运行时等），避免覆盖导致构建失败。
+# Railway 默认 Python 镜像不含 ffmpeg；用 nixPkgs 安装。"..." 保留 provider 默认包。
+#
+# 关键修复（2026-07-22）：曾经出现过同一 commit 有时能构建、有时不能——
+# 失败构建「没有 install 阶段 + setup 缺 ffmpeg」，导致 venv 未建、依赖未装、
+# 启动找不到 main.py、healthcheck 全失败。
+# 根因是 nixpacks 偶发不跑 Python provider 的 install 阶段（缓存/plan 非确定性）。
+# 这里把 install 阶段显式写死，强制每次都建 venv + pip install，消除非确定性。
+
 [phases.setup]
 nixPkgs = ["...", "ffmpeg"]
+
+[phases.install]
+cmds = ["python -m venv --copies /opt/venv && . /opt/venv/bin/activate && pip install -r requirements.txt"]
