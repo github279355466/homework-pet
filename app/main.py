@@ -2,10 +2,14 @@ import sqlite3
 import os
 import random
 import json
+import base64
+import subprocess
+import tempfile
+import shutil
 import logging
 from datetime import datetime, timedelta, date
 from typing import Optional
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, UploadFile, File, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -2620,6 +2624,7 @@ async def daily_signin():
 # 20260719 modi by codex: 聊天代理路由，转发 Hermes
 
 from chat_proxy import chat as hermes_chat, call_hermes
+from speech import get_asr_provider, get_tts_provider
 
 
 def _get_pet_state_for_chat():
@@ -2655,7 +2660,7 @@ async def chat_message(request: Request):
     data = await request.json()
     user_text = data.get("text", "").strip()
     if not user_text:
-        return JSONResponse({"error": "Empty message"}, status=400)
+        return JSONResponse({"error": "Empty message"}, status_code=400)
     session_id = data.get("session_id")
     pet_state = _get_pet_state_for_chat()
     tasks = _get_today_tasks_for_chat()
@@ -2673,6 +2678,109 @@ async def chat_new_session():
     """主动开启新聊天会话"""
     return {"success": True, "message": "请在页面按钮调用 localStorage.removeItem('chat_session_id') 后刷新"}
 
+
+# ===== 语音接口 (Voice: ASR / TTS) =====
+# 全百度：ASR=短语音识别标准版，TTS=短文本在线合成。适配器见 app/speech/。
+# Railway 默认镜像无 ffmpeg，需 nixpacks.toml 安装（见仓库根）；本地开发通常已装。
+
+_FFMPEG = shutil.which("ffmpeg") or shutil.which("ffmpeg.exe")
+
+
+def _transcode_to_wav(src_bytes: bytes, src_suffix: str) -> bytes:
+    """用 ffmpeg 把任意浏览器录音转成 16k 单声道 wav（百度 ASR 要求）。
+
+    浏览器 MediaRecorder 输出 webm/opus、mp4/aac 等，百度只收 pcm/wav/amr/m4a，
+    故服务端统一转码。Railway 若无 ffmpeg 会抛出清晰错误，提示加 nixpacks.toml。
+    """
+    if not _FFMPEG:
+        raise RuntimeError(
+            "服务端未安装 ffmpeg，无法转码音频。请在部署环境安装 ffmpeg"
+            "（Railway 在仓库根加 nixpacks.toml：[phases.setup] aptPkgs=[\"ffmpeg\"]）"
+        )
+    with tempfile.TemporaryDirectory() as td:
+        src = os.path.join(td, f"src{src_suffix}")
+        dst = os.path.join(td, "out.wav")
+        with open(src, "wb") as f:
+            f.write(src_bytes)
+        cmd = [_FFMPEG, "-y", "-i", src, "-ar", "16000", "-ac", "1", "-f", "wav", dst]
+        proc = subprocess.run(cmd, capture_output=True)
+        if proc.returncode != 0 or not os.path.exists(dst):
+            err = proc.stderr.decode("utf-8", "ignore")[:500]
+            raise RuntimeError(f"ffmpeg 转码失败 (code={proc.returncode}): {err}")
+        with open(dst, "rb") as f:
+            return f.read()
+
+
+@app.post("/api/chat/voice")
+async def chat_voice(
+    file: UploadFile = File(None),
+    audio_base64: str = Form(None),
+    fmt: str = Form("webm"),
+):
+    """语音识别入口：浏览器录音 -> 转码 16k 单声道 wav -> 百度 ASR -> 文本。
+
+    支持两种上传：
+      - multipart 文件：FormData 字段 `file`（推荐，浏览器录音直传）
+      - JSON/表单 base64：字段 `audio_base64` + `fmt`（如 webm/mp4/m4a）
+    返回 {"text": "...", "confidence": ...}；识别为空返回 {"text":"", "empty":true}。
+    """
+    try:
+        if file is not None:
+            raw = await file.read()
+            suffix = os.path.splitext(file.filename or "")[1] or f".{fmt}"
+        elif audio_base64:
+            raw = base64.b64decode(audio_base64)
+            suffix = f".{fmt}"
+        else:
+            return JSONResponse({"error": "缺少音频：需上传 file 或 audio_base64"}, status_code=400)
+
+        if not raw:
+            return JSONResponse({"error": "音频内容为空"}, status_code=400)
+
+        wav = _transcode_to_wav(raw, suffix)
+        provider = get_asr_provider()
+        result = await provider.recognize(wav, fmt="wav", rate=16000)
+        text = (result.get("text") or "").strip()
+        if not text:
+            return JSONResponse({"text": "", "confidence": result.get("confidence"), "empty": True})
+        logger.info("语音识别成功: %r", text)
+        return JSONResponse({"text": text, "confidence": result.get("confidence")})
+    except Exception as e:
+        logger.error("语音识别失败: %s", e)
+        return JSONResponse({"error": f"语音识别失败：{e}"}, status_code=500)
+
+
+@app.post("/api/chat/tts")
+async def chat_tts(request: Request):
+    """语音合成入口：文本 -> 百度 TTS -> 音频(mp3)。
+
+    请求体 JSON：{"text": "...", "per": 4(可选音色)}
+    返回 audio/mpeg 字节流（前端用 <audio> 或 Web Audio 播放）。
+    无密钥/未配置时走 MockTTS（返回带 ID3 头的占位字节，便于联调）。
+    """
+    try:
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        text = (data.get("text") or "").strip()
+        if not text:
+            return JSONResponse({"error": "缺少 text"}, status_code=400)
+        if len(text) > 512:  # 安全上限，避免单次超百度短文本 1024GBK 字节
+            text = text[:512]
+
+        provider = get_tts_provider()
+        opts = {}
+        if data.get("per") is not None:
+            opts["per"] = int(data["per"])
+        audio = await provider.synthesize(text, **opts)
+        if not audio:
+            return JSONResponse({"error": "TTS 返回空音频"}, status_code=500)
+        logger.info("语音合成成功 %d字节", len(audio))
+        return Response(content=audio, media_type="audio/mpeg")
+    except Exception as e:
+        logger.error("语音合成失败: %s", e)
+        return JSONResponse({"error": f"语音合成失败：{e}"}, status_code=500)
 
 
 # ===== 启动 =====

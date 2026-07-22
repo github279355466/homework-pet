@@ -1,0 +1,6 @@
+# Railway / Nixpacks 构建配置
+# 语音功能需要 ffmpeg 把浏览器录音(webm/mp4/aac) 转码为百度 ASR 要求的 16k 单声道 wav。
+# Railway 默认 Python 镜像不含 ffmpeg；用 nixPkgs 安装。
+# "..." 保留 provider 默认包（python 运行时等），避免覆盖导致构建失败。
+[phases.setup]
+nixPkgs = ["...", "ffmpeg"]
