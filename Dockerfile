@@ -15,11 +15,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 拷贝项目源码
+# 拷贝项目源码（仓库根 → /app，源码在 /app/app/main.py）
 COPY . .
 
-# 运行时工作目录在 app/，与本地开发一致
-WORKDIR /app/app
-
 # Railway 会注入 PORT；main.py 读取 PORT 环境变量并监听 0.0.0.0
-CMD ["python", "main.py"]
+# 注意：Railway Docker 运行时以 `python app/main.py` 启动（CWD=/app），
+# 因此这里 WORKDIR 保持 /app、CMD 用 app/main.py，解析为 /app/app/main.py。
+CMD ["python", "app/main.py"]
