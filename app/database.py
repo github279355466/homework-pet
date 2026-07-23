@@ -30,8 +30,10 @@ def _resolve_database_url():
     """
     env = os.environ.get("HOMEWORK_PET_DB_PATH")
     if env:
-        # 防线：Railway 不会在自定义变量值里展开 ${RAILWAY_VOLUME_MOUNT_PATH} 模板，
-        # 若用户误填了模板字符串，这里会原样拿到 '${...}'，导致数据库写进无效路径。
+        # 防线：Railway 支持在变量值里用 ${VAR} 引用其它变量（如 ${RAILWAY_VOLUME_MOUNT_PATH}），
+        # 且通常会在注入容器前展开。但若被引用的变量当时不可用/未解析，Railway 会原样保留
+        # '${...}'，导致本程序拿到字面模板、把数据库写进无效路径。这里检测到未展开的
+        # '${' 即报错并回退，避免静默写入坏路径后又触发自愈清库。
         if "${" in env:
             logger.error(
                 f"[db] ❌ HOMEWORK_PET_DB_PATH 含未展开的模板 '{env}'！"
