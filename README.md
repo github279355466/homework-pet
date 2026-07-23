@@ -1,4 +1,4 @@
-# 🐉 作业小龙 v3.3（多宠物系统）
+# 🐉 作业小龙 v3.4.1（多宠物系统 + 语音陪伴聊天）
 
 > 用电子宠物养成 + 代币经济激励孩子完成作业，养成良好学习习惯和行为规范。
 
@@ -85,7 +85,7 @@ homework-pet/
 │   │   └── species/          # 7 物种 × 5 阶段立绘（256×256，已压缩）
 │   ├── templates/
 │   │   └── index.html        # 前端单页面（Jinja2 模板）
-│   └── homework_pet.db       # SQLite 数据库文件（含生产数据，已入库）
+│   └── homework_pet.db       # 仓库内种子库（已入库，随 git 提交）
 ├── docs/
 │   ├── 项目地图.html
 │   ├── RAILWAY_REDEPLOY_MEMO.md  # v3.3 Railway 重新部署备忘
@@ -193,6 +193,11 @@ python app\test_safe_regression.py
 - **Bug 修复**：手动发布任务金币上限 100（移除 HTML `max="100"` 和 JS `coinsReward > 100` 双重限制）
 - 秒悟平台改造评估：不支持 Python 后端，沙箱代码已保留但未走 CDN 部署
 
+### v3.4.1（2026-07-23，语音陪伴聊天 + 数据持久化修复）
+- **小龙陪聊系统（Companion Chat）**：2026-07-18 启动、2026-07-22 完成语音聊天 T3–T7（ASR/TTS 全用百度），Hermes Agent 作为大脑（带长期记忆的用户画像），前端🎤文字/语音切换、按住说话、SSE 逐字渲染、服务端 TTS 播放
+- **数据持久化修复**：Railway Volume 挂载信任 + 种子库迁移（`_ensure_persistent_db()`），重部署不再清库；`HOMEWORK_PET_DB_PATH=${RAILWAY_VOLUME_MOUNT_PATH}/homework_pet.db`（Railway 注入前展开 `${VAR}`）
+- 当前版本号统一为 v3.4.1（Companion Chat 计为 v3.4）
+
 ### v3.3.0（2026-07-09，多宠物系统上线，Railway 部署成功）
 - **多宠物系统**：单宠物 → 多宠物（龙/猫/兔/狐/独角兽/凤凰/熊猫），金币/成就/连续打卡全局共享，饱腹/心情/经验/亲密度按个体
 - 新增 `species_catalog` / `pet_collection` 两表 + `pet.active_pet_id`；`multi_pet.py` 镜像兼容层保证旧 `WHERE id=1` 不崩
@@ -240,7 +245,7 @@ python app\test_safe_regression.py
 
 ---
 
-## 📋 待实现（v3.4+）
+## 📋 待实现（v3.5+）
 
 - [ ] 微信通知推送
 - [ ] 装饰商店完善（帽子/背景/拖尾效果）

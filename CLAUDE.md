@@ -1,6 +1,6 @@
 # 作业小龙 — Agent 项目指南
 
-> 当前版本：v3.3.0（多宠物系统；2026-07-09 全 Phase 完成并 push 至 main；Railway 已部署上线）
+> 当前版本：v3.4.1（多宠物系统 + 语音陪伴聊天 Companion Chat；2026-07-23 数据持久化修复）
 
 ## 项目状态
 
@@ -8,6 +8,7 @@
 - **生产地址**：`https://homepet.up.railway.app/`（2026-07-09 重建服务，旧域名 `web-production-a9e82.up.railway.app` 已废弃）
 - **数据库**：SQLite。`app/homework_pet.db` 是**仓库内种子库**（已含紫宝等生产数据，随 git 提交）；生产实时库落在 **Railway Volume**（经 `HOMEWORK_PET_DB_PATH` 或 `RAILWAY_VOLUME_MOUNT_PATH` 指定），首次挂载由 `_ensure_persistent_db()` 从种子库迁移过去，重部署不丢数据
 - **本地开发**：`cd app && python run_local.py`（端口 5001）
+- **陪聊 API Server**：Linux 服务器 `47.242.10.160:8642`（Hermes homework-child profile，儿童作业陪伴聊天大脑）
 
 ## 重要约束
 
@@ -39,7 +40,7 @@ app/
 ├── run_local.py          # 本地开发启动
 ├── templates/index.html  # 前端单页
 ├── static/               # 静态资源（含 species/ 35 张立绘）
-└── homework_pet.db       # 生产数据库
+└── homework_pet.db       # 仓库内种子库（随 git 提交）
 Procfile                  # Railway 启动命令
 railway.json              # Railway 构建配置
 requirements.txt          # Python 依赖
@@ -51,3 +52,4 @@ requirements.txt          # Python 依赖
 - **静态图片压缩**：原 2048×2048 PNG 已压缩到 256×256（5MB → 1.5MB），避免 Railway 上传超限
 - **金币上限已放开**：v3.2.1 移除了手动发布任务的 100 金币上限（HTML `max="100"` + JS 验证双重移除）
 - **数学题定时器修复**：v3.2.1 修复"再来一题"自动关闭 bug，根因是 `closeMathQuiz()` 内 `location.reload()` 与 setTimeout 冲突
+- **小龙陪聊系统（Companion Chat）**：2026-07-18 启动，Hermes Agent 作为大脑（带长期记忆的用户画像），前端作为交互通道；2026-07-22 完成语音聊天 T3–T7（ASR/TTS 全用百度），详见 `docs/plans/companion-chat-plan.md`
