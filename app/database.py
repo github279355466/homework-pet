@@ -30,15 +30,33 @@ def _resolve_database_url():
     """
     env = os.environ.get("HOMEWORK_PET_DB_PATH")
     if env:
-        # 用户显式指定：信任并使用；父目录不存在时尝试创建（卷已挂载则必然成功）。
-        parent = os.path.dirname(os.path.abspath(env))
-        try:
-            os.makedirs(parent, exist_ok=True)
-        except Exception as e:
-            logger.warning(f"[db] HOMEWORK_PET_DB_PATH 父目录创建失败: {parent} -> {e}")
-        return env
+        # 防线：Railway 不会在自定义变量值里展开 ${RAILWAY_VOLUME_MOUNT_PATH} 模板，
+        # 若用户误填了模板字符串，这里会原样拿到 '${...}'，导致数据库写进无效路径。
+        if "${" in env:
+            logger.error(
+                f"[db] ❌ HOMEWORK_PET_DB_PATH 含未展开的模板 '{env}'！"
+                f"Railway 不会在自定义变量值中展开 ${{RAILWAY_VOLUME_MOUNT_PATH}}。"
+                f"请直接填真实挂载路径，例如 "
+                f"/var/lib/containers/railwayapp/bind-mounts/.../vol_xxx/homework_pet.db。"
+                f"本次回退镜像内库（数据不持久化）。"
+            )
+            return DEFAULT_DATABASE_URL
+        resolved = os.path.abspath(env)
+        parent = os.path.dirname(resolved)
+        # 不主动 makedirs：避免卷未挂载时在当前层创建「影子目录」遮蔽真实卷；
+        # Railway 保证容器启动前完成挂载，parent 必然已存在。
+        if not os.path.isdir(parent):
+            logger.warning(f"[db] HOMEWORK_PET_DB_PATH 父目录不存在: {parent}（卷未挂载或路径错误？仍尝试使用）")
+        return resolved
     vol = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
     if vol:
+        if "${" in vol:
+            logger.error(
+                f"[db] ❌ RAILWAY_VOLUME_MOUNT_PATH 含未展开的模板 '{vol}'！"
+                f"该变量很可能被自引用覆盖。请删除自定义的 RAILWAY_VOLUME_MOUNT_PATH 变量，"
+                f"让 Railway 自动注入真实挂载路径。本次回退镜像内库（数据不持久化）。"
+            )
+            return DEFAULT_DATABASE_URL
         # Railway 在容器启动前已完成卷挂载，挂载点目录必然存在。
         # 注意：不要主动 makedirs，否则未挂载时会在当前层创建「影子目录」遮蔽真实卷。
         if os.path.isdir(vol):
