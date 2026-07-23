@@ -2647,6 +2647,8 @@ async function doInteract(type) {
       playDragonAnim(type);
       // 显示语音气泡
       showBubble(result.bubble);
+      // 同步朗读同一段互动文字（百度 TTS；playTts 自带失败兜底，不影响文字显示）
+      playTts(result.bubble);
       // 产生粒子效果
       spawnParticles(type);
       // 实时刷新亲密度和心情显示
@@ -4028,13 +4030,25 @@ function scrollChatToBottom() {
 }
 
 // ============ TTS 播放（服务端百度合成，失败回退浏览器） ============
+
+// 文本预清洗：去掉 emoji / 特殊符号，只保留可朗读的文字与标点，让语音更干净。
+// 注意：仅影响"送出去朗读"的文本；屏幕上的文字气泡仍保留原始 emoji。
+function cleanTtsText(text) {
+  if (!text) return '';
+  // 去除 emoji、符号、变体选择符、零宽连接符、键帽、商标/版权符号等
+  const s = text.replace(/[\u{1F000}-\u{1FAFF}\u{2700}-\u{27BF}\u{2600}-\u{26FF}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2B00}-\u{2BFF}\u{25A0}-\u{25FF}\u{2460}-\u{24FF}\u{20E3}\u{FE00}-\u{FE0F}\u{200D}\u{2122}\u{00A9}\u{00AE}]/gu, '');
+  // 合并空白并去首尾空格
+  return s.replace(/\s+/g, ' ').trim();
+}
+
 async function playTts(text) {
-  if (!text) return;
+  const ttsText = cleanTtsText(text);   // 预清洗后再送 TTS
+  if (!ttsText) return;
   try {
     const resp = await fetch('/api/chat/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text })
+      body: JSON.stringify({ text: ttsText })
     });
     if (!resp.ok) throw new Error('tts ' + resp.status);
     const blob = await resp.blob();
@@ -4044,7 +4058,7 @@ async function playTts(text) {
     await audio.play();
   } catch (e) {
     console.warn('服务端 TTS 失败，回退浏览器朗读:', e);
-    speakTextFallback(text);
+    speakTextFallback(ttsText);
   }
 }
 
