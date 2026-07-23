@@ -10,57 +10,48 @@ logger = logging.getLogger("homework-pet")
 
 DEFAULT_DATABASE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "homework_pet.db")
 
-def _is_writable_dir(path, retries=15, delay=0.5):
-    """探测目录是否真实可写（Railway 只读根文件系统 + 未真正挂载的卷会返回 False）。
-
-    带重试：卷在 `Starting Container` 前瞬间才挂载，导入那一刻探测可能仍返回不可写，
-    重试若干次可等到挂载就绪，从而尽量连卷库（保证持久化）而非回退 bundled。
-    """
-    last_err = None
-    for i in range(retries):
-        try:
-            os.makedirs(path, exist_ok=True)
-            probe = os.path.join(path, ".hwpet_writetest")
-            with open(probe, "w") as f:
-                f.write("ok")
-            os.remove(probe)
-            return True
-        except Exception as e:
-            last_err = e
-            if i < retries - 1:
-                time.sleep(delay)
-    logger.warning(f"[db] 目录不可写（重试 {retries} 次均失败）: {path} -> {last_err}")
-    return False
-
-
 _DB_URL_CACHE = None  # 进程内一次性解析并缓存，保证 init_db 与请求处理连到同一库文件
 
 
 def _resolve_database_url():
-    """解析数据库路径。
+    """解析数据库路径（进程内只解析一次，见 get_database_url 缓存）。
 
     优先级：
       1. HOMEWORK_PET_DB_PATH（显式指定，如 Railway Volume 挂载路径 /data/homework_pet.db）
       2. RAILWAY_VOLUME_MOUNT_PATH 环境变量（Railway 挂卷后自动注入）下的 homework_pet.db
-      3. 默认 app/homework_pet.db（镜像内 bundled，部署后临时盘，重启会丢）
-    测试可通过环境变量隔离。
+      3. 默认 app/homework_pet.db（镜像内 bundled，部署后临时盘，重启/重部署会丢）
 
-    健壮性：若卷挂载点经探测「不可写」（未真正挂载 / 只读根），则**回退**到镜像内库，
-    避免 init_db() 连到不存在的目录而崩溃导致整个服务起不来（曾经因此 healthcheck 全失败）。
+    关键修复（2026-07-23）：
+      此前用「写探针」判断卷是否就绪，在 Railway 只读根 + 挂载时序下极易误判为不可写，
+      于是静默回退到镜像内临时盘，导致每次重部署数据被清空（表现为「所有表重建」）。
+      改为：RAILWAY_VOLUME_MOUNT_PATH 一旦设置即信任（Railway 保证容器启动前完成挂载，
+      挂载点目录必然存在），仅用 os.path.isdir 兜底；不做会误判的写探针，也不主动 makedirs
+      （避免未挂载时在当前层创建「影子目录」遮蔽真实卷）。
     """
     env = os.environ.get("HOMEWORK_PET_DB_PATH")
     if env:
+        # 用户显式指定：信任并使用；父目录不存在时尝试创建（卷已挂载则必然成功）。
         parent = os.path.dirname(os.path.abspath(env))
-        if _is_writable_dir(parent):
-            return env
-        logger.warning(f"[db] HOMEWORK_PET_DB_PATH 父目录不可写: {parent}，回退镜像内库")
-        return DEFAULT_DATABASE_URL
+        try:
+            os.makedirs(parent, exist_ok=True)
+        except Exception as e:
+            logger.warning(f"[db] HOMEWORK_PET_DB_PATH 父目录创建失败: {parent} -> {e}")
+        return env
     vol = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
     if vol:
-        if _is_writable_dir(vol):
+        # Railway 在容器启动前已完成卷挂载，挂载点目录必然存在。
+        # 注意：不要主动 makedirs，否则未挂载时会在当前层创建「影子目录」遮蔽真实卷。
+        if os.path.isdir(vol):
             return os.path.join(vol, "homework_pet.db")
-        logger.warning(f"[db] 卷挂载点不可写（未真正挂载？）: {vol}，回退镜像内库")
+        logger.warning(
+            f"[db] RAILWAY_VOLUME_MOUNT_PATH={vol} 目录不存在（卷未真正挂载？），"
+            f"回退镜像内库 —— 数据将不持久化，重启/重部署会丢失！"
+        )
         return DEFAULT_DATABASE_URL
+    logger.warning(
+        "[db] 未检测到持久盘配置（HOMEWORK_PET_DB_PATH / RAILWAY_VOLUME_MOUNT_PATH 均未设置），"
+        "使用镜像内临时库 —— 数据将在重部署后丢失！建议在 Railway 设置 HOMEWORK_PET_DB_PATH 指向卷。"
+    )
     return DEFAULT_DATABASE_URL
 
 
@@ -616,7 +607,15 @@ def init_db():
 # 进程内一次性锁定数据库路径（必须在 init_db 之前），
 # 避免「导入时」与「请求时」卷可写性探测结果不一致导致连到不同库文件。
 _DB_URL_CACHE = _resolve_database_url()
-logger.info(f"[db] 已锁定数据库路径: {_DB_URL_CACHE}")
+if _DB_URL_CACHE == DEFAULT_DATABASE_URL:
+    logger.warning(
+        "═══════════════════════════════════════════════════════════\n"
+        "[db] ⚠️ 持久化未启用：数据库落在镜像内临时盘，重部署/重启将丢失全部数据！\n"
+        "[db] 修复：在 Railway Variables 设置 HOMEWORK_PET_DB_PATH=/卷挂载路径/homework_pet.db\n"
+        "═══════════════════════════════════════════════════════════"
+    )
+else:
+    logger.info(f"[db] ✅ 持久化已启用，数据库路径: {_DB_URL_CACHE}")
 
 # 持久盘种子迁移（必须在 init_db 之前，避免 Volume 首启建空库丢数据）
 _ensure_persistent_db()
