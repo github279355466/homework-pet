@@ -2,7 +2,7 @@
   "project": "homework-pet",
   "name_cn": "作业小龙",
   "version": "v3.4.1",
-  "last_updated": "2026-07-18",
+  "last_updated": "2026-07-23",
   "status": "done",
   "current_branch": "main",
   "production": {
@@ -32,20 +32,20 @@
     "agents_skills": ".agents/skills/"
   },
   "current_task": {
-    "id": "companion-chat",
-    "name": "小龙陪聊系统（Companion Chat）",
-    "started": "2026-07-18",
+    "id": "railway-db-persistence",
+    "name": "Railway 数据库持久化修复",
+    "started": "2026-07-22",
+    "completed_at": "2026-07-23",
     "status": "done",
-    "owner": "hermes",
+    "owner": "workbuddy",
     "branch": "main",
-    "plan_doc": "docs/plans/companion-chat-plan.md",
-    "deploy_target": "Linux 47.242.10.160:8642",
-    "components": {
-      "hermes_profile": "homework-child (deepseek-v4-flash)",
-      "proxy": "app/chat_proxy.py (HTTP async, env-controlled)",
-      "frontend": "聊天面板 + 语音 + Hermes 互动"
-    }
+    "summary": "删除写探针误判、信任 Volume 挂载路径、种子库迁移、${VAR} 未展开守卫；修复重部署清库（no such table: pet / 表重建）",
+    "commits": ["e6c4474", "6a562c8", "4ad7446"]
   },
+  "recent_completed": [
+    {"id": "companion-chat", "name": "小龙陪聊系统（Companion Chat）", "status": "done", "completed_at": "2026-07-18", "owner": "hermes"},
+    {"id": "railway-db-persistence", "name": "Railway 数据库持久化修复", "status": "done", "completed_at": "2026-07-23", "owner": "workbuddy", "commits": ["e6c4474", "6a562c8", "4ad7446"]}
+  ],
   "databases": {
     "production": {
       "path": "app/homework_pet.db",

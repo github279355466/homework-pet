@@ -10,15 +10,15 @@
 | journal-1.md | 2026-07-08 | Hermes (架构师) | v3.3 多宠物系统设计 + 交接给 Codex | ✅ 完成 |
 | journal-2.md | 2026-07-09 | Hermes (验证者) | v3.3 验证测试 - 67 项 61 通过, 发现 2 BUG | ✅ 完成 |
 | journal-3.md | 2026-07-09 | 齐活林/Qi (交付总监) | v3.3 BUG 修复 + 立绘压缩 + 推送 + Task 状态更新 | ✅ 代码完成, 🟡 Railway 待重建 |
+| journal-4.md | 2026-07-23 | workbuddy (执行) | Railway 持久化修复收尾 + 文档同步 + Trellis 任务更新 | ✅ 完成 |
 
 ## 当前任务
 
-- **任务**: v3.3 多宠物系统改造
-- **分支**: main (Codex 已合并, 已推送 origin/main)
-- **进度**: 2 BUG 已修复 + 立绘已压缩(256×256/2.4MB) + 代码已推送; Task 67/69 完成
-- **BUG 状态**: 均已在 `34a32d1` 修复（见 journal-3.md），QA 独立回归 5/5 PASS
-- **剩余阻塞**: Railway 生产 URL 返回 `Application not found`，服务未绑定/已被删（非代码问题）
-- **下一步**: 用户在 Railway 面板重建或重连仓库 → 拿到新域名 → 补 task 7.5 生产冒烟
+- **任务**: Railway 数据库持久化修复（railway-persistence-fix，已 done）
+- **分支**: main（已推送 e6c4474 / 6a562c8 / 4ad7446）
+- **进度**: 写探针误判→卷信任 + 紫宝种子库提交 + ${VAR} 守卫；重部署清库根因已修复
+- **剩余验证**: 用户贴新部署日志确认 `[db] ✅ 持久化已启用` + 紫宝首屏
+- **历史**: v3.3 多宠物（journal-1~3）+ companion-chat 均已完成
 
 ## 联系方式
 

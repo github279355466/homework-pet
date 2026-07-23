@@ -6,7 +6,7 @@
 
 | 方式 | 适用场景 | 启动命令 | 持久化 |
 |------|----------|----------|--------|
-| **Railway（推荐，当前生产）** | 公网访问、免运维 | `python app/main.py`（见 `Procfile` / `railway.json`） | SQLite 文件随仓库提交，Volume 持久化 |
+| **Railway（推荐，当前生产）** | 公网访问、免运维 | `python app/main.py`（见 `Procfile` / `railway.json`） | 仓库种子库 + Volume 持久化（已实现，重部署不丢） |
 | Windows 云服务器 | 自托管、内网部署 | `python app/main.py` 或 NSSM 服务 | 本地磁盘 |
 | 本地开发 | 调试 | `python app/run_local.py`（端口 5001） | 本地磁盘 |
 
@@ -22,9 +22,9 @@
 - Railway 账号（用 GitHub 登录）
 - 仓库已包含以下部署配置：
   - `Procfile` — 启动命令
-  - `railway.json` — Railway 构建配置（NIXPACKS builder，健康检查 `/`）
+  - `railway.json` — Railway 构建配置（**DOCKERFILE** builder，根目录 `Dockerfile`；健康检查 `/`）
   - `requirements.txt` — Python 依赖（每行一个包，必须是真实换行符）
-  - `app/homework_pet.db` — 已提交的 SQLite 数据库（含生产数据）
+  - `app/homework_pet.db` — 已提交的 SQLite **种子库**（含紫宝等生产数据；运行时由 Volume 持久化）
 
 ### A.2 配置文件
 
@@ -37,7 +37,7 @@ web: python app/main.py
 ```json
 {
   "$schema": "https://railway.app/railway.schema.json",
-  "build": { "builder": "NIXPACKS" },
+  "build": { "builder": "DOCKERFILE" },
   "deploy": {
     "startCommand": "python app/main.py",
     "healthcheckPath": "/",
@@ -67,11 +67,13 @@ Railway 不支持改 `*.up.railway.app` 的前缀。要自定义域名：
 1. Railway Dashboard → 项目 → **Settings** → **Domains**
 2. 输入你的域名，按提示配 DNS CNAME 记录指向 Railway 提供的地址
 
-### A.6 数据库持久化
+### A.6 数据库持久化（已实现）
 
-- 当前方案：`app/homework_pet.db` 跟随 git 提交，部署后从仓库拉取
-- 升级方案（推荐）：在 Railway 添加 Volume 挂载到 `/app` 路径，避免重新部署时数据丢失
-- 备份：`sqlite3 app/homework_pet.db .dump > backups/dump_$(date +%Y%m%d).sql`
+- **机制**：`database.py` 优先使用 `HOMEWORK_PET_DB_PATH`；未设时回退 `RAILWAY_VOLUME_MOUNT_PATH` 挂载点下的 `homework_pet.db`；再无则退回镜像内种子库（临时盘，重部署会丢）。
+- **配置（Railway Variables）**：设 `HOMEWORK_PET_DB_PATH = ${RAILWAY_VOLUME_MOUNT_PATH}/homework_pet.db`（Railway 会在注入前展开 `${VAR}` 为真实卷路径）；或显式填卷挂载真实路径（见部署日志 `Mounting volume on:` 行）。
+- **种子迁移**：卷路径库不存在 / 为空壳时，启动时从仓库内 `app/homework_pet.db` 种子库拷贝过去，首挂载即得紫宝等数据，之后重部署持久保留。
+- **自检日志**：启动应见 `[db] ✅ 持久化已启用` 与 `已锁定数据库路径: /var/lib/containers/.../vol_.../homework_pet.db`（真实路径，无 `${`）。若见 `❌ 含未展开的模板` 说明变量未正确展开。
+- 备份（可选）：`sqlite3 <卷路径>/homework_pet.db .dump > backups/dump_$(date +%Y%m%d).sql`
 
 ### A.7 更新部署
 

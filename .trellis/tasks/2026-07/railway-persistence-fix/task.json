@@ -1,0 +1,22 @@
+{
+  "id": "railway-persistence-fix",
+  "phase": 0,
+  "title": "Railway 数据库持久化修复（解决重部署清库 / no such table: pet）",
+  "files": [
+    "app/database.py",
+    "app/homework_pet.db",
+    "railway.json"
+  ],
+  "depends_on": [],
+  "status": "done",
+  "assignee": "workbuddy",
+  "branch": "main",
+  "plan_ref": null,
+  "created_at": "2026-07-22",
+  "started_at": "2026-07-22",
+  "completed_at": "2026-07-23",
+  "commit_sha": "e6c4474",
+  "related_commits": ["2c58a20", "28adcca", "4652c25", "e6c4474", "6a562c8", "4ad7446"],
+  "verification_output": "部署日志应见 [db] ✅ 持久化已启用 + 已锁定数据库路径: /var/lib/containers/.../vol_.../homework_pet.db（真实路径，无 ${）；首屏宠物为紫宝（非 作业小龙）",
+  "notes": "根因：_resolve_database_url() 原用写探针 _is_writable_dir 在 Railway 只读根+挂载时序下误判卷不可写→静默回退临时盘→自愈重建空库。修复：信任 RAILWAY_VOLUME_MOUNT_PATH / HOMEWORK_PET_DB_PATH（os.path.isdir 兜底、不主动 makedirs）；提交紫宝种子库；加 ${VAR} 未展开模板守卫。Railway 支持 ${VAR} 引用展开（已验证），守卫仅在该引用未解析时触发。"
+}

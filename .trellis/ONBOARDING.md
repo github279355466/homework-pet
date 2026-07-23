@@ -1,8 +1,8 @@
 # Trellis 项目导航 - homework-pet (作业小龙)
 
 > **版本**: v3.3.0 (已上线)
-> **更新**: 2026-07-09
-> **当前主线**: v3.3 多宠物系统已部署 (https://homepet.up.railway.app)
+> **更新**: 2026-07-23
+> **当前主线**: v3.3 多宠物系统已部署 (https://homepet.up.railway.app) + Railway 卷持久化已修复
 
 ---
 
@@ -11,7 +11,7 @@
 **作业小龙** 是一个面向小学生的作业打卡 + 宠物养成 Web 应用。
 - **技术栈**: FastAPI 0.109 + SQLite + Jinja2 单页前端
 - **生产环境**: Railway (https://homepet.up.railway.app/)
-- **数据库**: `app/homework_pet.db` (生产 SQLite，含真实数据)
+- **数据库**: `app/homework_pet.db` 是仓库**种子库**（含真实数据）；生产实时库在 Railway Volume（卷持久化，重部署不丢）
 - **启动命令**: `python app/main.py` (端口由 PORT 环境变量决定)
 
 ## 项目结构
@@ -41,7 +41,7 @@ homework-pet/
 
 ## 关键约束 (来自 CLAUDE.md)
 
-1. **生产 DB 不可直接修改**: `app/homework_pet.db` 是生产数据
+1. **生产 DB 不可直接修改**: 仓库内 `app/homework_pet.db` 是种子库；生产实时库在 Railway Volume，经 `HOMEWORK_PET_DB_PATH` 指定
    - 写操作测试必须用环境变量: `HOMEWORK_PET_DB_PATH=backups/test_xxx.db`
 2. **部署机制**: 推送 `main` 分支即触发 Railway 自动构建
 3. **端口动态读取**: `main.py` 末尾必须保留 `port=int(os.environ.get("PORT", 5000))`
@@ -94,5 +94,5 @@ homework-pet/
 下一步待定（可选方向）：
 - 用户反馈收集 + 缺陷修复
 - 新物种/新皮肤扩展
-- 数据持久化迁移（如需 Volume 持久化）
+- ✅ 数据持久化：Railway Volume 持久化已实现并修复（重部署不再清库；紫宝经种子库自动恢复）
 - 性能监控接入

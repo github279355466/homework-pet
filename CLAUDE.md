@@ -6,13 +6,14 @@
 
 - **生产环境**：Railway（连 GitHub `github279355466/homework-pet` 自动构建）
 - **生产地址**：`https://homepet.up.railway.app/`（2026-07-09 重建服务，旧域名 `web-production-a9e82.up.railway.app` 已废弃）
-- **数据库**：`app/homework_pet.db`（SQLite，已入库，含生产数据；v3.3 已迁移，含 pet_collection/species_catalog）
+- **数据库**：SQLite。`app/homework_pet.db` 是**仓库内种子库**（已含紫宝等生产数据，随 git 提交）；生产实时库落在 **Railway Volume**（经 `HOMEWORK_PET_DB_PATH` 或 `RAILWAY_VOLUME_MOUNT_PATH` 指定），首次挂载由 `_ensure_persistent_db()` 从种子库迁移过去，重部署不丢数据
 - **本地开发**：`cd app && python run_local.py`（端口 5001）
 
 ## 重要约束
 
 ### 数据库
-- `app/homework_pet.db` 是**生产数据**，不可直接修改
+- 仓库内 `app/homework_pet.db` 是**种子库**（提交到 git），不是实时生产库；不要把它当生产数据直接改
+- 生产运行库在 Railway Volume：设 `HOMEWORK_PET_DB_PATH=${RAILWAY_VOLUME_MOUNT_PATH}/homework_pet.db`（Railway 会在注入前展开 `${VAR}`）；`database.py` 信任该路径并自动从种子库 seed，重部署持久化
 - 写操作测试用环境变量切换：`HOMEWORK_PET_DB_PATH=backups/test_homework_pet.db`
 - 测试脚本 `app/test_safe_regression.py` 拒绝连接真实数据库路径
 
