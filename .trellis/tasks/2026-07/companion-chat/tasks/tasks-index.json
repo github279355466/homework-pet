@@ -42,7 +42,7 @@
     {
       "id": "CC-7",
       "status": "done",
-      "commit": "e3a82c0",
+      "commit": "275ddc8",
       "name": "聊天会话历史修复（session 重置 bug）"
     }
   ],
