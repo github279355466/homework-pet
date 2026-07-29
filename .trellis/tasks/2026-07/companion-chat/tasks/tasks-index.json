@@ -38,10 +38,16 @@
       "status": "done",
       "commit": "c45bf04",
       "name": "CSP 修复 + 全链路测试"
+    },
+    {
+      "id": "CC-7",
+      "status": "done",
+      "commit": "e3a82c0",
+      "name": "聊天会话历史修复（session 重置 bug）"
     }
   ],
   "started": "2026-07-18",
   "deploy_target": "Linux 47.242.10.160:8642",
   "name": "小龙陪聊系统（Companion Chat）",
-  "completed": "2026-07-21"
+  "completed": "2026-07-29"
 }

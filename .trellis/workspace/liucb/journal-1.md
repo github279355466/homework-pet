@@ -135,3 +135,26 @@
 ---
 
 *Journal 结束。Codex 接手后请在此文件继续追加 Journal-2, Journal-3...*
+
+
+## Task CC-7: 聊天会话历史修复 (Companion Chat)
+
+**时间**: 2026-07-29
+**Commit**: (pending)
+**变更**:
+- 修改文件: app/main.py
+- 新增: _chat_session_histories 内存缓存字典
+- 新增: _MAX_HISTORY_MESSAGES = 50 限制
+- 修改: chat_message 路由——加载历史、发送完整上下文给 Hermes、保存响应、自动修剪
+- 修改: /api/chat/new-session 端点——新增服务端历史清除
+
+**根因**: 每次调用 Hermes API 只发送 [system, current_user]，不发送完整对话历史。chatHistory 前端变量声明但未使用。
+
+**验证结果**:
+- [OK] Python AST 语法解析通过
+- [OK] 11 项关键代码路径检查全部通过
+- [OK] 前端 localStorage 持久化 session_id → 后端加载历史 → 发送完整上下文 数据流完整
+
+**遇到的问题**: 无
+
+**下一步**: 生产环境冒烟测试（Railway 部署后验证多轮对话记忆）

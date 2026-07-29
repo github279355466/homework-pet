@@ -2637,6 +2637,13 @@ from chat_proxy import (
 )
 from speech import get_asr_provider, get_tts_provider
 
+# ── 聊天会话历史（内存缓存，keyed by session_id） ──
+# 每个 session_id 对应一个消息列表，包含 system/user/assistant 角色
+# 服务端维护历史，确保 Hermes 每次调用都能拿到完整上下文，不会"失忆"
+_chat_session_histories: dict[str, list[dict]] = {}
+_MAX_HISTORY_MESSAGES = 50  # 每个 session 最多保留 50 条消息（约 25 轮对话）
+
+
 
 def _get_pet_state_for_chat():
     try:
@@ -2697,38 +2704,58 @@ async def chat_message(request: Request):
             yield "data: " + json.dumps({"type": "done", "text": "说太快啦，让小龙头休息一下", "session_id": session_id or "", "mood": "overwhelmed"}, ensure_ascii=False) + "\n\n"
         return StreamingResponse(_ratelimit(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
+    # ── 加载/创建该 session 的对话历史 ──
+    if not session_id:
+        session_id = ""
+    if session_id not in _chat_session_histories:
+        _chat_session_histories[session_id] = []
+    history = _chat_session_histories[session_id]
+
+    # 构建/更新 system 消息（含宠物状态和今日任务）
     pet_state = _get_pet_state_for_chat()
     tasks = _get_today_tasks_for_chat()
-    msgs = []
     if pet_state or tasks:
         ctx = build_context(pet_state, tasks)
-        msgs.append({"role": "system", "content": ctx})
-    msgs.append({"role": "user", "content": clean_text})
+        if history and history[0].get("role") == "system":
+            history[0]["content"] = ctx
+        else:
+            history.insert(0, {"role": "system", "content": ctx})
+
+    # 追加用户消息到历史
+    history.append({"role": "user", "content": clean_text})
 
     async def event_gen():
         full = []
         try:
-            async for chunk in chat_proxy.call_hermes_stream(msgs, session_id=session_id):
+            async for chunk in chat_proxy.call_hermes_stream(list(history), session_id=session_id):
                 full.append(chunk)
                 yield "data: " + json.dumps({"type": "token", "text": chunk}, ensure_ascii=False) + "\n\n"
         except Exception as e:
             logger.error("聊天流式失败: %s", e)
+            if history and history[-1].get("role") == "user" and history[-1].get("content") == clean_text:
+                history.pop()
             fallback = "小龙正在休息，请稍后重试～"
-            # 若已经流出部分内容，则补全；否则直接给降级提示
             if full:
-                yield "data: " + json.dumps({"type": "done", "text": "".join(full), "session_id": session_id or "", "mood": "normal"}, ensure_ascii=False) + "\n\n"
+                yield "data: " + json.dumps({"type": "done", "text": "".join(full), "session_id": session_id, "mood": "normal"}, ensure_ascii=False) + "\n\n"
+                history.append({"role": "assistant", "content": "".join(full)})
             else:
-                yield "data: " + json.dumps({"type": "done", "text": fallback, "session_id": session_id or "", "mood": "normal"}, ensure_ascii=False) + "\n\n"
+                yield "data: " + json.dumps({"type": "done", "text": fallback, "session_id": session_id, "mood": "normal"}, ensure_ascii=False) + "\n\n"
             return
         final = "".join(full)
         mood = detect_mood_from_text(final)
-        yield "data: " + json.dumps({"type": "done", "text": final, "session_id": session_id or "", "mood": mood}, ensure_ascii=False) + "\n\n"
+        history.append({"role": "assistant", "content": final})
+        if len(history) > _MAX_HISTORY_MESSAGES:
+            sys_msg = history[0] if history and history[0].get("role") == "system" else None
+            trimmed = history[-(_MAX_HISTORY_MESSAGES - (1 if sys_msg else 0)):]
+            _chat_session_histories[session_id] = ([sys_msg] if sys_msg else []) + trimmed
+        yield "data: " + json.dumps({"type": "done", "text": final, "session_id": session_id, "mood": mood}, ensure_ascii=False) + "\n\n"
 
     return StreamingResponse(
         event_gen(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
 
 
 @app.get("/api/chat/status")
@@ -2752,8 +2779,18 @@ async def chat_status():
     }
 
 @app.post("/api/chat/new-session")
-async def chat_new_session():
-    """主动开启新聊天会话"""
+async def chat_new_session(request: Request = None):
+    """主动开启新聊天会话，同时清除服务端历史"""
+    session_id = None
+    if request:
+        try:
+            data = await request.json()
+            session_id = data.get("session_id")
+        except Exception:
+            pass
+    if session_id and session_id in _chat_session_histories:
+        del _chat_session_histories[session_id]
+        return {"success": True, "message": "会话已清除", "session_id": session_id}
     return {"success": True, "message": "请在页面按钮调用 localStorage.removeItem('chat_session_id') 后刷新"}
 
 
