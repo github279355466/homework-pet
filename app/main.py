@@ -3053,10 +3053,18 @@ def _generate_questions_for_level(conn, level, subject, grade):
     
     if cached['cnt'] >= 10:
         # 已有缓存，直接返回
+        # 注意：challenge_questions.options 写入时用 json.dumps 存为 TEXT，
+        # 这里必须 json.loads 反序列化为列表，与非缓存分支（question_bank）一致——
+        # 否则前端 q.options.forEach() 会因 options 是字符串而抛 TypeError，选项按钮无法渲染（回归 bug）
         questions = conn.execute("""
             SELECT * FROM challenge_questions WHERE level_id = ? ORDER BY question_order
         """, (level['id'],)).fetchall()
-        return [dict(q) for q in questions]
+        result = []
+        for q in questions:
+            d = dict(q)
+            d['options'] = json.loads(d['options'])
+            result.append(d)
+        return result
     
     questions = []
     

@@ -1,0 +1,19 @@
+{
+  "id": "challenge-options-cached-fix",
+  "phase": 0,
+  "title": "闯关选项空白回归：缓存读路径未 JSON 解码 options",
+  "files": [
+    "app/main.py"
+  ],
+  "depends_on": [],
+  "status": "in_progress",
+  "assignee": "workbuddy",
+  "branch": "main",
+  "plan_ref": null,
+  "created_at": "2026-07-30",
+  "started_at": "2026-07-30",
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": "回归 bug：闯关弹窗题目下方选项空白（截图：5+3=? / 下列哪个字是正确的？ / Apple 是什么意思？）。根因：_generate_questions_for_level 的「已有缓存」分支（cached['cnt']>=10）直接 return [dict(q) for q in questions]，未对 options 字段做 json.loads；而 challenge_questions 表中 options 是以 json.dumps 存为 TEXT 的，非缓存分支又对 question_bank 做了 json.loads，导致两条路径返回类型不一致。\n\n前端 q.options.forEach(...) 要求数组；拿到字符串时抛出 TypeError，单题 0 个按钮被 append。\n\n修复只动缓存读取分支，加 json.loads(options) 与另一边对称。前端/数据安全不受影响。回归测试：隔离库模拟缓存态，断言 _generate_questions_for_level 返回每题 options 是长度为 4 的字符串列表。"
+}
