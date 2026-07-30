@@ -868,3 +868,37 @@ python scripts/generate_question_bank.py
 - `scripts/generate_seed_questions.py` — 种子题库脚本
 - `scripts/generate_question_bank.py` — API 题库脚本
 
+
+---
+
+## 英语题库生成（v3.5 新增）
+
+英语学科不依赖教材 PDF，直接基于小学英语课程标准生成：
+
+```bash
+# 英语题库生成（无需 API，基于课程标准）
+python scripts/generate_english_questions.py
+```
+
+覆盖年级：1-6 年级，每个年级 200 题（单词认知 + 语法填空 + 阅读理解 + 情景对话）。
+
+### 完整教材处理流程
+
+```bash
+# 1. PDF -> Markdown（PyMuPDF，~56 秒处理 293 个 PDF）
+python scripts/convert_textbooks_fast.py
+
+# 2. 知识图谱生成 + 入库
+python scripts/convert_textbooks.py kg
+python scripts/convert_textbooks.py import
+
+# 3. 基础题库生成（模板方式，无需 API）
+python scripts/generate_seed_questions_v22.py
+
+# 4. 高难度题目补充
+python scripts/generate_hard_questions.py
+
+# 5. 英语题库生成（基于课程标准）
+python scripts/generate_english_questions.py
+```
+

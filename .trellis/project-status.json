@@ -41,7 +41,7 @@
     "branch": "main",
     "started": "2026-07-29",
     "owner": "codex",
-    "summary": "闯关模块完成：教材PDF→Markdown(80文件/5.1MB)→知识图谱(3492点)→题库(3844题)→6API→前端UI，Phase1-3全部完成",
+    "summary": "闯关模块完成：题库4,614题（语文1,148+数学2,598+英语868），3学科×6年级全覆盖",
     "name": "闯关模块（Challenge Mode）",
     "status": "done",
     "id": "challenge-mode",
@@ -56,7 +56,8 @@
       "owner": "codex",
       "commits": [
         "f591648"
-      ]
+      ],
+      "summary": "闯关模块完成：题库4,614题，3学科×6年级全覆盖，已部署生产"
     },
     {
       "id": "chat-session-persistence",

@@ -70,11 +70,11 @@ requirements.txt          # Python 依赖
 2. `scripts/convert_textbooks.py kg` — 从 Markdown 提取知识图谱
 3. `scripts/convert_textbooks.py import` — 知识图谱入库
 4. `scripts/generate_seed_questions.py` — 本地种子题库（模板生成，无需 API）
-5. `scripts/generate_question_bank.py` — API 题库（需 Hermes，生产环境执行）
+5. `scripts/generate_english_questions.py` — 英语题库（基于课程标准，无需教材）`n6. `scripts/generate_question_bank.py` — API 题库（需 Hermes，生产环境可选）
 
 ### 新增数据库表
 - `knowledge_points` — 知识图谱（学科→年级→章节→知识点）
-- `question_bank` — 基础题库（约 6000 题）
+- `question_bank` — 基础题库（4,614 题）
 - `challenge_levels` — 关卡表
 - `challenge_questions` — 题目缓存
 - `challenge_daily_progress` — 每日进度
@@ -89,8 +89,6 @@ requirements.txt          # Python 依赖
 - `GET /api/challenge/history` — 闯关历史
 
 ### AI 出题机制
-- **System Prompt**：含防幻觉规则，严格控制知识范围
-- **质量校验**：格式检查 → 数学答案验证 → 难度检测
-- **降级策略**：API 失败时使用预设题库
-- **教材参考**：实时出题时传入对应章节 Markdown 片段
+- **System Prompt**：含防幻觉规则，严格控制知识范围\n- **质量校验**：格式检查 → 数学答案验证 → 难度检测\n- **降级策略**：API 失败时使用预设题库\n- **教材参考**：实时出题时传入对应章节 Markdown 片段\n- **英语生成**：基于小学英语课程标准直接生成，不依赖教材 PDF
+
 
