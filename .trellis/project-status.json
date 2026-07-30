@@ -41,14 +41,25 @@
     "branch": "main",
     "started": "2026-07-30",
     "owner": "workbuddy",
-    "summary": "修复闯关状态误判为已完成：today_done 漏判 completed==1 致开局即禁用再次进入，已修复待部署",
-    "name": "修复闯关状态误判",
+    "summary": "家长模式新增闯关重置：一键将今日已完成闯关恢复为可挑战，仅翻转 completed 标志不清除历史；含家长可见闯关记录视图",
+    "name": "家长模式闯关重置",
     "status": "done",
-    "id": "challenge-state-fix",
+    "id": "challenge-parent-reset",
     "completed_at": "2026-07-30",
-    "commit_sha": "b745972"
+    "commit_sha": "e95d2ba"
   },
   "recent_completed": [
+    {
+      "id": "challenge-parent-reset",
+      "name": "家长模式闯关重置",
+      "status": "done",
+      "completed_at": "2026-07-30",
+      "owner": "workbuddy",
+      "commits": [
+        "e95d2ba"
+      ],
+      "summary": "家长模式新增闯关重置：一键将今日已完成闯关恢复为可挑战（仅翻转 completed 标志），不清除关卡/错题/历史；新增家长可见的闯关记录与错题统计视图"
+    },
     {
       "id": "challenge-state-fix",
       "name": "修复闯关状态误判为已完成",
