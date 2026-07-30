@@ -1,0 +1,20 @@
+{
+  "id": "challenge-parent-reset",
+  "phase": 0,
+  "title": "家长模式新增闯关重置（保留历史）",
+  "files": [
+    "app/main.py",
+    "app/templates/index.html"
+  ],
+  "depends_on": [],
+  "status": "in_progress",
+  "assignee": "workbuddy",
+  "branch": "main",
+  "plan_ref": "C:\\Users\\Administrator\\.workbuddy\\plans\\stellar-thunder-lovelace.md",
+  "created_at": "2026-07-30",
+  "started_at": "2026-07-30",
+  "completed_at": null,
+  "commit_sha": null,
+  "verification_output": null,
+  "notes": "需求：家长可在家长模式一键将今日已完成闯关恢复为可挑战状态；仅翻转 challenge_daily_progress.completed 标志，不清除关卡进度/错题/历史。决策：一键重置今日全部(非逐科)；不强制指定重玩关卡；保持 complete 发奖逻辑不变。前端新增「闯关记录」只读视图(复用 /api/challenge/history + /api/challenge/wrong-questions)与「闯关重置」动作按钮。"
+}

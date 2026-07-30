@@ -2099,6 +2099,20 @@
     </div>
     {% endif %}
 
+    <!-- 闯关记录 -->
+    <div class="parent-section">
+      <h5>🏆 闯关记录</h5>
+      <div id="parentChallengeStatus" style="font-size:13px; color:#666; margin-bottom:10px;"></div>
+      <div id="parentChallengeHistory"></div>
+    </div>
+
+    <!-- 闯关重置 -->
+    <div class="parent-section">
+      <h5>🎮 闯关重置</h5>
+      <p style="font-size:12px; color:#999; margin-bottom:10px; line-height:1.6;">将今日已完成的闯关恢复为「可挑战」状态，孩子可重新进入。<br>仅翻转当日完成标记，<b>不会清除</b>任何闯关历史、关卡进度与错题记录。</p>
+      <button class="parent-btn" onclick="resetTodayChallenge()">🔓 重新开放今日闯关</button>
+    </div>
+
     <!-- 家长设置 -->
     <div class="parent-section">
       <h5>⚙️ 设置</h5>
@@ -2409,6 +2423,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // 家长端：初始化模板列表
   if (currentRole === 'parent') {
     renderTemplates('all');
+    loadParentChallengeStatus();
+    loadParentChallengeHistory();
   }
 });
 
@@ -3203,6 +3219,85 @@ async function resetAllData() {
       setTimeout(() => location.reload(), 1500);
     }
   } catch(e) { showToast('重置失败：' + e.message); }
+}
+
+// ===== 家长模式：闯关重置 + 记录查看 =====
+async function resetTodayChallenge() {
+  const pwd = prompt('请输入家长密码确认重置今日闯关：');
+  if (!pwd) return;
+  try {
+    const formData = new FormData();
+    formData.append('password', pwd);
+    const resp = await fetch('/api/parent/reset-challenge', { method: 'POST', body: formData });
+    const result = await resp.json();
+    showToast(result.message || (result.success ? '今日闯关已重新开放' : '重置失败'));
+    if (result.success) {
+      loadParentChallengeStatus();
+      loadParentChallengeHistory();
+    }
+  } catch(e) { showToast('重置失败：' + e.message); }
+}
+
+async function loadParentChallengeStatus() {
+  try {
+    const resp = await fetch('/api/challenge/status');
+    const data = await resp.json();
+    if (!data.success) return;
+    const el = document.getElementById('parentChallengeStatus');
+    if (!el) return;
+    let html = '今日闯关：' + (data.today_completed || 0) + '/' + (data.today_max || 3) + ' 科已完成';
+    if (Array.isArray(data.subjects) && data.subjects.length) {
+      html += '<div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:6px;">';
+      data.subjects.forEach(s => {
+        const done = s.today_done;
+        const style = done
+          ? 'background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9;'
+          : 'background:#f5f5f5; color:#888; border:1px solid #eee;';
+        html += '<span style="padding:3px 8px; border-radius:10px; font-size:12px; ' + style + '">'
+              + (s.icon || '🎯') + ' ' + s.name + (done ? ' 已完成' : ' 可挑战') + '</span>';
+      });
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  } catch(e) { console.error('加载家长闯关状态失败:', e); }
+}
+
+async function loadParentChallengeHistory() {
+  try {
+    const subjectNames = { chinese: '语文', math: '数学', english: '英语' };
+    const nameOf = (s) => subjectNames[s] || s;
+    const resp = await fetch('/api/challenge/history?limit=20');
+    const data = await resp.json();
+    if (!data.success) return;
+    const el = document.getElementById('parentChallengeHistory');
+    if (!el) return;
+    let html = '';
+    const hist = (data.history || []).filter(h => h.completed_at);
+    if (!hist.length) {
+      html = '<div style="font-size:12px; color:#bbb; padding:8px 0;">暂无已完成闯关记录</div>';
+    } else {
+      html += '<div style="font-size:12px; font-weight:600; color:#888; margin-bottom:4px;">已通关关卡</div>';
+      html += '<div style="display:flex; flex-direction:column; gap:4px;">';
+      hist.slice(0, 12).forEach(h => {
+        const stars = '★'.repeat(h.stars || 0) + '☆'.repeat(5 - (h.stars || 0));
+        html += '<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:4px 8px; background:#fafafe; border-radius:8px;">'
+              + '<span>' + nameOf(h.subject) + ' 第' + (h.level_number || 0) + '关</span>'
+              + '<span style="color:#fbc02d;">' + stars + '</span>'
+              + '<span style="color:#999;">' + (h.completed_at ? h.completed_at.slice(0, 10) : '') + '</span></div>';
+      });
+      html += '</div>';
+    }
+    const wrong = data.wrong_stats || [];
+    if (wrong.length) {
+      html += '<div style="font-size:12px; font-weight:600; color:#888; margin:8px 0 4px;">错题统计</div>';
+      html += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
+      wrong.forEach(w => {
+        html += '<span style="padding:3px 8px; border-radius:10px; font-size:12px; background:#fff3e0; color:#e65100; border:1px solid #ffe0b2;">' + nameOf(w.subject) + '：' + w.cnt + ' 题</span>';
+      });
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  } catch(e) { console.error('加载闯关历史失败:', e); }
 }
 
 // ===== 确认弹窗 =====

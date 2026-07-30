@@ -1497,6 +1497,28 @@ async def reset_data(password: str = Form(...)):
     conn.close()
     return {"success": True, "message": "所有游戏数据已重置！"}
 
+@app.post("/api/parent/reset-challenge")
+async def reset_challenge(password: str = Form(...)):
+    """家长重置今日闯关为可挑战状态（仅翻转完成标志，不清除任何历史/错题/关卡记录）"""
+    conn = get_db_connection()
+    row = conn.execute("SELECT * FROM parent_settings WHERE key = 'parent_password'").fetchone()
+    stored = row['value'] if row else '1234'
+    if password != stored:
+        conn.close()
+        return {"success": False, "message": "密码错误"}
+
+    today = get_current_time().strftime('%Y-%m-%d')
+    # 仅将今日「已完成」(completed=1) 的闯关恢复为「可挑战」(completed=0)
+    # 不删除/修改 challenge_levels / challenge_wrong_questions / challenge_questions 的任何记录（数据安全红线）
+    cur = conn.execute(
+        "UPDATE challenge_daily_progress SET completed = 0 WHERE challenge_date = ? AND completed = 1",
+        (today,)
+    )
+    reset_count = cur.rowcount
+    conn.commit()
+    conn.close()
+    return {"success": True, "message": "今日闯关已重新开放，孩子可再次挑战", "reset_count": reset_count}
+
 # ----- 商店直接喂食 API -----
 
 @app.post("/api/shop/buy-feed")
