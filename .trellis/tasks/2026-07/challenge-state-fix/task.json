@@ -14,7 +14,7 @@
   "created_at": "2026-07-30",
   "started_at": "2026-07-30",
   "completed_at": "2026-07-30",
-  "commit_sha": null,
+  "commit_sha": "b745972",
   "verification_output": "QA PASS：静态3项（today_done 逻辑、closeChallengeModal 补 loadChallengeStatus、div 平衡）+ 隔离测试库端到端：开局后 today_done=false、完成后 today_done=true。",
   "notes": "根因：/api/challenge/status 的 today_done = daily is not None，漏判 completed==1；开局 /api/challenge/start 插入 completed=0 行后即误报今日已完成，前端禁用再次进入。修复：today_done = daily is not None and daily['completed']==1；closeChallengeModal 末尾补 loadChallengeStatus() 即时刷新。状态模型：未开始(无行)→进行中(completed=0)→已完成(completed=1)。"
 }

@@ -41,14 +41,25 @@
     "branch": "main",
     "started": "2026-07-30",
     "owner": "workbuddy",
-    "summary": "修复闯关标签页点击后空白：pane-challenge 被错误嵌套进 pane-chat 导致内容不可见，已修复并部署",
-    "name": "修复闯关标签页空白",
+    "summary": "修复闯关状态误判为已完成：today_done 漏判 completed==1 致开局即禁用再次进入，已修复待部署",
+    "name": "修复闯关状态误判",
     "status": "done",
-    "id": "challenge-tab-blank-fix",
+    "id": "challenge-state-fix",
     "completed_at": "2026-07-30",
-    "commit_sha": "3f4cbe83389be59d646983f7898165c89a3e73ca"
+    "commit_sha": "b745972"
   },
   "recent_completed": [
+    {
+      "id": "challenge-state-fix",
+      "name": "修复闯关状态误判为已完成",
+      "status": "done",
+      "completed_at": "2026-07-30",
+      "owner": "workbuddy",
+      "commits": [
+        "b745972"
+      ],
+      "summary": "today_done 原 daily is not None 漏判 completed==1，开局即误报今日已完成禁用再进入；改为严格 ==1 判断并补 closeChallengeModal 刷新"
+    },
     {
       "id": "challenge-tab-blank-fix",
       "name": "修复闯关标签页空白",
