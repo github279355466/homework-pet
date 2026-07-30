@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -1357,6 +1357,57 @@
 @keyframes chat-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .chat-avatar-bounce { animation: chat-bounce 0.6s ease; }
 .tts-btn{background:none;border:none;cursor:pointer;font-size:16px;margin-left:6px;vertical-align:middle;pointer-events:auto!important;position:relative;z-index:999;}
+
+/* ===== 闯关模块 ===== */
+.challenge-header { padding: 16px 12px 12px; text-align: center; }
+.challenge-title { font-size: 22px; font-weight: 800; color: #2D3436; }
+.challenge-subtitle { font-size: 13px; color: #888; margin-top: 4px; }
+.challenge-subjects { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 0 12px 12px; }
+.subject-card { background: #fff; border-radius: 16px; padding: 16px 8px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+.subject-card:active { transform: scale(0.96); }
+.subject-card[data-subject="chinese"] { background: linear-gradient(135deg, #fff5f5, #ffe8e8); border-color: #E1705555; }
+.subject-card[data-subject="math"] { background: linear-gradient(135deg, #fffde7, #fff8c4); border-color: #FFD70055; }
+.subject-card[data-subject="english"] { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-color: #0984E355; }
+.subject-card.done { opacity: 0.6; filter: grayscale(0.3); }
+.subject-icon { font-size: 32px; margin-bottom: 6px; }
+.subject-name { font-size: 15px; font-weight: 700; color: #2D3436; }
+.subject-level { font-size: 12px; color: #6C5CE7; font-weight: 600; margin-top: 4px; }
+.subject-status { font-size: 11px; color: #00B894; font-weight: 600; margin-top: 2px; }
+.subject-status.done { color: #888; }
+.challenge-stats { display: flex; justify-content: space-around; padding: 12px; margin: 0 12px 12px; background: rgba(255,255,255,0.7); border-radius: 16px; }
+.stat-item { text-align: center; }
+.stat-value { font-size: 20px; font-weight: 800; color: #6C5CE7; }
+.stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+.challenge-history { padding: 12px; margin: 0 12px 16px; background: rgba(255,255,255,0.7); border-radius: 16px; }
+.challenge-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+.challenge-modal-overlay.show { display: flex; }
+.challenge-modal { background: #fff; border-radius: 24px; width: 90%; max-width: 420px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: modalSlideUp 0.3s ease; }
+@keyframes modalSlideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.challenge-modal-header { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid #f0f0f0; }
+.challenge-exit { width: 32px; height: 32px; border-radius: 50%; border: none; background: #f0f0f0; font-size: 16px; cursor: pointer; flex-shrink: 0; }
+.challenge-progress-bar { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+.challenge-progress-fill { height: 100%; background: linear-gradient(90deg, #6C5CE7, #A29BFE); border-radius: 4px; transition: width 0.3s; }
+.challenge-progress-text { font-size: 12px; font-weight: 700; color: #6C5CE7; min-width: 40px; text-align: right; }
+.challenge-modal-body { padding: 20px 16px; }
+.challenge-question-text { font-size: 18px; font-weight: 700; color: #2D3436; margin-bottom: 20px; line-height: 1.6; }
+.challenge-options { display: flex; flex-direction: column; gap: 10px; }
+.challenge-option { padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 14px; background: #fff; font-size: 15px; cursor: pointer; transition: all 0.15s; text-align: left; }
+.challenge-option:hover { border-color: #6C5CE7; background: #f8f5ff; }
+.challenge-option.correct { border-color: #00B894; background: #e8faf0; }
+.challenge-option.wrong { border-color: #E17055; background: #fff0f0; }
+.challenge-option.disabled { pointer-events: none; opacity: 0.7; }
+.challenge-feedback { margin-top: 16px; padding: 12px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
+.challenge-feedback.correct { background: #e8faf0; color: #00B894; }
+.challenge-feedback.wrong { background: #fff0f0; color: #E17055; }
+.challenge-modal-footer { padding: 12px 16px 20px; text-align: center; }
+.challenge-btn-next { padding: 14px 32px; background: linear-gradient(135deg, #6C5CE7, #A29BFE); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.challenge-result-stars { font-size: 40px; text-align: center; padding: 24px 0 8px; }
+.challenge-result-title { font-size: 24px; font-weight: 800; text-align: center; color: #2D3436; }
+.challenge-result-score { font-size: 18px; text-align: center; color: #888; margin: 8px 0 16px; }
+.challenge-result-rewards { text-align: center; padding: 12px; background: #f8f5ff; border-radius: 12px; margin-bottom: 16px; }
+.challenge-result-chest { text-align: center; font-size: 48px; padding: 16px; animation: chestBounce 0.6s ease; }
+@keyframes chestBounce { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.challenge-btn-continue { display: block; width: 100%; padding: 14px; background: linear-gradient(135deg, #00B894, #00CEC9); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -1703,6 +1754,7 @@
       <div class="tab-item" id="tab-shop" onclick="switchTab('shop')">🏪 商店</div>
       <div class="tab-item" id="tab-ach" onclick="switchTab('ach')">🏆 成就</div>
       <div class="tab-item" id="tab-chat" onclick="switchTab('chat')">🗣️ 聊天</div>
+      <div class="tab-item" id="tab-challenge" onclick="switchTab('challenge')">🎯 闯关</div>
     </div>
       <div class="tab-item" id="tab-shop" onclick="switchTab('shop')">🏪 商店</div>
       <div class="tab-item" id="tab-ach" onclick="switchTab('ach')">🏆 成就</div>
@@ -2391,7 +2443,7 @@ function startCountdown() {
 
 // ===== Tab 切换 =====
 function switchTab(tab) {
-  ['tasks','shop','ach','chat'].forEach(t => {
+  ['tasks','shop','ach','chat','challenge'].forEach(t => {
     document.getElementById('pane-'+t).style.display = t===tab ? 'block' : 'none';
     document.getElementById('tab-'+t).classList.toggle('active', t===tab);
   });
@@ -4167,6 +4219,91 @@ function escapeHtml(text) {
     </div>
     <div id="chatRecHint" class="chat-rec-hint" style="display:none;">🎧 正在听…松开结束</div>
   </div>
+<!-- ===== 闯关 Tab ===== -->
+<div class="challenge-section" id="pane-challenge" style="display:none;">
+  <div class="challenge-header">
+    <div class="challenge-title">🎯 闯关大冒险</div>
+    <div class="challenge-subtitle" id="challengeGradeDisplay">年级: --</div>
+  </div>
+  
+  <!-- 学科卡片 -->
+  <div class="challenge-subjects" id="challengeSubjects">
+    <div class="subject-card" data-subject="chinese" onclick="startChallenge('chinese')">
+      <div class="subject-icon">📚</div>
+      <div class="subject-name">语文</div>
+      <div class="subject-level" id="level-chinese">第1关</div>
+      <div class="subject-status" id="status-chinese">待挑战</div>
+    </div>
+    <div class="subject-card" data-subject="math" onclick="startChallenge('math')">
+      <div class="subject-icon">🔢</div>
+      <div class="subject-name">数学</div>
+      <div class="subject-level" id="level-math">第1关</div>
+      <div class="subject-status" id="status-math">待挑战</div>
+    </div>
+    <div class="subject-card" data-subject="english" onclick="startChallenge('english')">
+      <div class="subject-icon">🔤</div>
+      <div class="subject-name">英语</div>
+      <div class="subject-level" id="level-english">第1关</div>
+      <div class="subject-status" id="status-english">待挑战</div>
+    </div>
+  </div>
+  
+  <!-- 统计区 -->
+  <div class="challenge-stats">
+    <div class="stat-item">
+      <div class="stat-value" id="todayChallengeCount">0/3</div>
+      <div class="stat-label">今日闯关</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="totalStars">0</div>
+      <div class="stat-label">总星数</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="totalCompleted">0</div>
+      <div class="stat-label">总通关</div>
+    </div>
+  </div>
+  
+  <!-- 最近通关 -->
+  <div class="challenge-history">
+    <div class="section-title">🏆 最近通关</div>
+    <div id="challengeHistoryList" style="font-size:13px;color:#888;">暂无记录，快去挑战吧！</div>
+  </div>
+</div>
+
+<!-- 答题弹窗 -->
+<div class="challenge-modal-overlay" id="challengeModal">
+  <div class="challenge-modal">
+    <div class="challenge-modal-header">
+      <button class="challenge-exit" onclick="closeChallengeModal()">✕</button>
+      <div class="challenge-progress-bar">
+        <div class="challenge-progress-fill" id="challengeProgressFill"></div>
+      </div>
+      <div class="challenge-progress-text" id="challengeProgressText">1/10</div>
+    </div>
+    <div class="challenge-modal-body">
+      <div class="challenge-question-text" id="challengeQuestionText">题目加载中...</div>
+      <div class="challenge-options" id="challengeOptions"></div>
+      <div class="challenge-feedback" id="challengeFeedback" style="display:none;"></div>
+    </div>
+    <div class="challenge-modal-footer" id="challengeFooter">
+      <button class="challenge-btn-next" id="challengeBtnNext" onclick="nextChallengeQuestion()" style="display:none;">下一题 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- 通关结算弹窗 -->
+<div class="challenge-modal-overlay" id="challengeResultModal">
+  <div class="challenge-modal">
+    <div class="challenge-result-stars" id="resultStars">⭐⭐⭐</div>
+    <div class="challenge-result-title" id="resultTitle">恭喜通关！</div>
+    <div class="challenge-result-score" id="resultScore">8/10</div>
+    <div class="challenge-result-rewards" id="resultRewards"></div>
+    <div class="challenge-result-chest" id="resultChest" style="display:none;"></div>
+    <button class="challenge-btn-continue" onclick="closeResultModal()">继续冒险</button>
+  </div>
+</div>
+
 </div>
 
 
@@ -4180,6 +4317,222 @@ document.addEventListener('click', function(e) {
     if (text) playTts(text);
   }
 });
+
+// ===== 闯关模块 JavaScript =====
+let challengeState = {
+  active: false,
+  subject: null,
+  grade: 1,
+  levelId: null,
+  levelNumber: 0,
+  questions: [],
+  currentIndex: 0,
+  score: 0,
+  answers: [],
+};
+
+// 加载闯关状态
+async function loadChallengeStatus() {
+  try {
+    const resp = await fetch('/api/challenge/status');
+    const data = await resp.json();
+    if (!data.success) return;
+    
+    document.getElementById('challengeGradeDisplay').textContent = '年级: ' + data.grade + '年级';
+    document.getElementById('todayChallengeCount').textContent = data.today_completed + '/' + data.today_max;
+    
+    let totalStars = 0, totalCompleted = 0;
+    data.subjects.forEach(s => {
+      document.getElementById('level-' + s.subject).textContent = '第' + (s.completed + 1) + '关';
+      const statusEl = document.getElementById('status-' + s.subject);
+      if (s.today_done) {
+        statusEl.textContent = '已完成 ✓';
+        statusEl.className = 'subject-status done';
+        document.querySelector('.subject-card[data-subject="' + s.subject + '"]').classList.add('done');
+      } else {
+        statusEl.textContent = '待挑战';
+        statusEl.className = 'subject-status';
+      }
+      totalStars += s.total_stars;
+      totalCompleted += s.completed;
+    });
+    
+    document.getElementById('totalStars').textContent = totalStars;
+    document.getElementById('totalCompleted').textContent = totalCompleted;
+  } catch(e) { console.error('加载闯关状态失败:', e); }
+}
+
+// 开始闯关
+async function startChallenge(subject) {
+  if (petStatus === 'sleeping') { showToast('😴 小龙睡着了，先完成作业唤醒它吧～'); return; }
+  
+  const card = document.querySelector('.subject-card[data-subject="' + subject + '"]');
+  if (card.classList.contains('done')) { showToast('今天已经闯关过了，明天再来吧！'); return; }
+  
+  try {
+    const formData = new FormData();
+    formData.append('subject', subject);
+    
+    const resp = await fetch('/api/challenge/start', { method: 'POST', body: formData });
+    const data = await resp.json();
+    
+    if (!data.success) { showToast(data.message); return; }
+    
+    challengeState = {
+      active: true,
+      subject: subject,
+      grade: data.level.grade,
+      levelId: data.level.id,
+      levelNumber: data.level.level_number,
+      questions: data.questions,
+      currentIndex: 0,
+      score: 0,
+      answers: [],
+    };
+    
+    document.getElementById('challengeModal').classList.add('show');
+    renderChallengeQuestion();
+  } catch(e) { showToast('开始闯关失败'); console.error(e); }
+}
+
+// 渲染题目
+function renderChallengeQuestion() {
+  const q = challengeState.questions[challengeState.currentIndex];
+  if (!q) { completeChallenge(); return; }
+  
+  const total = challengeState.questions.length;
+  const current = challengeState.currentIndex + 1;
+  
+  document.getElementById('challengeProgressFill').style.width = ((current - 1) / total * 100) + '%';
+  document.getElementById('challengeProgressText').textContent = current + '/' + total;
+  document.getElementById('challengeQuestionText').textContent = q.question_text;
+  document.getElementById('challengeFeedback').style.display = 'none';
+  document.getElementById('challengeBtnNext').style.display = 'none';
+  
+  const optDiv = document.getElementById('challengeOptions');
+  optDiv.innerHTML = '';
+  const labels = ['A', 'B', 'C', 'D'];
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'challenge-option';
+    btn.textContent = labels[i] + '. ' + opt.replace(/^[A-D]\.\s*/, '');
+    btn.onclick = () => submitChallengeAnswer(labels[i], btn);
+    optDiv.appendChild(btn);
+  });
+}
+
+// 提交答案
+async function submitAnswer(label, btn) {
+  const q = challengeState.questions[challengeState.currentIndex];
+  
+  try {
+    const formData = new FormData();
+    formData.append('question_index', challengeState.currentIndex);
+    formData.append('answer', label);
+    formData.append('level_id', challengeState.levelId);
+    
+    const resp = await fetch('/api/challenge/answer', { method: 'POST', body: formData });
+    const result = await resp.json();
+    
+    const options = document.querySelectorAll('.challenge-option');
+    options.forEach(o => o.classList.add('disabled'));
+    
+    const correctLabel = result.correct_answer;
+    options.forEach(o => {
+      if (o.textContent.startsWith(correctLabel + '.')) o.classList.add('correct');
+    });
+    
+    const feedback = document.getElementById('challengeFeedback');
+    if (result.correct) {
+      challengeState.score++;
+      btn.classList.add('correct');
+      feedback.className = 'challenge-feedback correct';
+      feedback.innerHTML = '✅ 太棒了！回答正确！';
+    } else {
+      btn.classList.add('wrong');
+      feedback.className = 'challenge-feedback wrong';
+      feedback.innerHTML = '❌ 不对哦～正确答案是 <strong>' + correctLabel + '</strong><br>💡 ' + (result.explanation || '');
+    }
+    feedback.style.display = 'block';
+    document.getElementById('challengeBtnNext').style.display = 'inline-block';
+    document.getElementById('challengeProgressFill').style.width = ((challengeState.currentIndex + 1) / challengeState.questions.length * 100) + '%';
+  } catch(e) { showToast('提交答案失败'); }
+}
+
+// 兼容旧函数名
+function submitChallengeAnswer(label, btn) { submitAnswer(label, btn); }
+
+// 下一题
+function nextChallengeQuestion() {
+  challengeState.currentIndex++;
+  if (challengeState.currentIndex >= challengeState.questions.length) {
+    completeChallenge();
+  } else {
+    renderChallengeQuestion();
+  }
+}
+
+// 完成闯关
+async function completeChallenge() {
+  try {
+    const formData = new FormData();
+    formData.append('level_id', challengeState.levelId);
+    formData.append('score', challengeState.score);
+    formData.append('total', challengeState.questions.length);
+    
+    const resp = await fetch('/api/challenge/complete', { method: 'POST', body: formData });
+    const result = await resp.json();
+    
+    if (!result.success) { showToast('结算失败'); return; }
+    
+    document.getElementById('challengeModal').classList.remove('show');
+    
+    // 显示结算弹窗
+    const stars = result.stars;
+    const starStr = '⭐'.repeat(stars) + '☆'.repeat(5 - stars);
+    document.getElementById('resultStars').textContent = starStr;
+    document.getElementById('resultTitle').textContent = result.passed ? '🎉 恭喜通关！' : '💪 继续努力！';
+    document.getElementById('resultScore').textContent = result.score + '/' + result.total + ' 题正确';
+    
+    let rewardsHtml = '';
+    if (result.rewards.coins > 0) rewardsHtml += '<div>🪙 +' + result.rewards.coins + ' 龙币</div>';
+    if (result.rewards.exp > 0) rewardsHtml += '<div>⭐ +' + result.rewards.exp + ' 经验</div>';
+    document.getElementById('resultRewards').innerHTML = rewardsHtml;
+    
+    if (result.rewards.chest && result.rewards.chest.length > 0) {
+      const chest = result.rewards.chest[0];
+      document.getElementById('resultChest').style.display = 'block';
+      document.getElementById('resultChest').innerHTML = chest.icon + '<br><div style="font-size:14px;">' + chest.name + '</div>';
+    } else {
+      document.getElementById('resultChest').style.display = 'none';
+    }
+    
+    document.getElementById('challengeResultModal').classList.add('show');
+    
+    // 更新龙币显示
+    if (result.rewards.coins > 0) {
+      updateCoinDisplay((parseInt(document.querySelector('.attr-coin')?.textContent?.replace(/[^0-9]/g, '') || 0) + result.rewards.coins));
+    }
+    
+    // 粒子效果
+    if (result.passed) spawnParticles('play');
+  } catch(e) { showToast('结算失败'); console.error(e); }
+}
+
+// 关闭弹窗
+function closeChallengeModal() {
+  document.getElementById('challengeModal').classList.remove('show');
+  challengeState.active = false;
+}
+
+function closeResultModal() {
+  document.getElementById('challengeResultModal').classList.remove('show');
+  challengeState.active = false;
+  loadChallengeStatus();
+}
+
+// 页面加载时加载闯关状态
+setTimeout(loadChallengeStatus, 500);
 </script>
 
 </body>

@@ -1,8 +1,8 @@
 {
   "project": "homework-pet",
   "name_cn": "作业小龙",
-  "version": "v3.4.2",
-  "last_updated": "2026-07-29",
+  "version": "v3.5.0",
+  "last_updated": "2026-07-30",
   "status": "done",
   "current_branch": "main",
   "production": {
@@ -38,17 +38,14 @@
     "agents_skills": ".agents/skills/"
   },
   "current_task": {
-    "id": "chat-session-persistence",
-    "name": "聊天会话历史修复",
-    "started": "2026-07-29",
-    "completed_at": "2026-07-29",
-    "status": "done",
-    "owner": "codex",
     "branch": "main",
-    "summary": "修复聊天 session 重置 bug：后端新增 _chat_session_histories 内存缓存，每次调用 Hermes 发送完整对话历史",
-    "commits": [
-      "275ddc8"
-    ]
+    "started": "2026-07-29",
+    "owner": "codex",
+    "summary": "闯关模块完成：教材PDF→Markdown(80文件/5.1MB)→知识图谱(3490点)→基础题库(6010题)→6个API端点→前端UI，端到端测试通过",
+    "name": "闯关模块（Challenge Mode）",
+    "status": "done",
+    "id": "challenge-mode",
+    "completed_at": "2026-07-30"
   },
   "recent_completed": [
     {
@@ -108,9 +105,15 @@
     "pet_accessories": "宠物装饰品",
     "parent_settings": "家长设置 key-value",
     "species_catalog": "[v3.3新增] 物种目录",
-    "pet_collection": "[v3.3新增] 宠物个体表"
+    "pet_collection": "[v3.3新增] 宠物个体表",
+    "knowledge_points": "[v3.5新增] 知识图谱",
+    "question_bank": "[v3.5新增] 基础题库",
+    "challenge_levels": "[v3.5新增] 关卡表",
+    "challenge_questions": "[v3.5新增] 题目缓存",
+    "challenge_daily_progress": "[v3.5新增] 每日进度",
+    "challenge_wrong_questions": "[v3.5新增] 错题记录"
   },
-  "api_endpoints_count": 57,
+  "api_endpoints_count": 63,
   "references": {
     "design_v33": "docs/multi-pet-design.md",
     "plan_v33": "docs/plans/2026-07-08-multi-pet-v3.3-plan.md",
@@ -119,7 +122,9 @@
     "journal": ".trellis/workspace/liucb/journal-1.md",
     "claude_md": "CLAUDE.md",
     "companion_chat_plan": "docs/plans/companion-chat-plan.md",
-    "hermes_linux_deploy": "docs/plans/hermes-linux-deploy.md"
+    "hermes_linux_deploy": "docs/plans/hermes-linux-deploy.md",
+    "challenge_mode": ".trellis/tasks/2026-07/challenge-mode/",
+    "challenge_prd": ".trellis/tasks/2026-07/challenge-mode/PRD.md"
   },
   "agents": {
     "hermes_role": "architect-and-planner",

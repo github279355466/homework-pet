@@ -833,3 +833,38 @@ C:\homework-pet\venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --p
 ---
 
 部署完成！🎉 如有问题请参考 [prd.md](prd.md) 了解功能详情。
+
+---
+
+## 闯关模块部署注意（v3.5）
+
+### 教材转换（本地预处理，无需服务器）
+教材 PDF → Markdown → 基础题库，全部在**本地开发机**完成，不需要在服务器调用任何 API：
+
+```bash
+# 1. PDF → Markdown（PyMuPDF，~56 秒处理 293 个 PDF）
+python scripts/convert_textbooks_fast.py
+
+# 2. 知识图谱生成 + 入库
+python scripts/convert_textbooks.py kg
+python scripts/convert_textbooks.py import
+
+# 3. 本地种子题库生成（模板方式，无需 API）
+python scripts/generate_seed_questions.py
+```
+
+### 生产环境题库增强（可选）
+如需更丰富的题目，在服务器配置 Hermes API 后执行：
+```bash
+# 需要环境变量：HERMES_API_URL, HERMES_API_KEY
+python scripts/generate_question_bank.py
+```
+
+### 新增文件清单
+- `docs/教材/markdown/` — 转换后的 Markdown 文件（80 个，5.1 MB）
+- `docs/教材/knowledge_graph.json` — 知识图谱（~7000 知识点）
+- `scripts/convert_textbooks_fast.py` — PDF 转换脚本
+- `scripts/convert_textbooks.py` — 知识图谱脚本
+- `scripts/generate_seed_questions.py` — 种子题库脚本
+- `scripts/generate_question_bank.py` — API 题库脚本
+

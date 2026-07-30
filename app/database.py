@@ -604,6 +604,140 @@ def init_db():
             if not existing:
                 cursor.execute("INSERT INTO parent_settings (key, value) VALUES (?, ?)", (key, val))
 
+
+    # ===== 闯关模块（Challenge Mode）v3.5 新增表 =====
+
+    # 知识图谱表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_points (
+            id TEXT PRIMARY KEY,
+            subject TEXT NOT NULL,
+            grade INTEGER NOT NULL,
+            chapter TEXT NOT NULL,
+            name TEXT NOT NULL,
+            difficulty INTEGER DEFAULT 1,
+            prerequisite TEXT,
+            next TEXT,
+            skills TEXT,
+            source_textbook TEXT,
+            sort_order INTEGER DEFAULT 0
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_kp_subject_grade ON knowledge_points(subject, grade)")
+
+    # 基础题库表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS question_bank (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kp_id TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            grade INTEGER NOT NULL,
+            chapter TEXT,
+            difficulty INTEGER DEFAULT 1,
+            question_text TEXT NOT NULL,
+            options TEXT NOT NULL,
+            correct_answer TEXT NOT NULL,
+            explanation TEXT,
+            source TEXT DEFAULT 'textbook',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (kp_id) REFERENCES knowledge_points(id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_qb_kp_diff ON question_bank(kp_id, difficulty)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_qb_subject_grade ON question_bank(subject, grade)")
+
+    # 关卡表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS challenge_levels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject TEXT NOT NULL,
+            grade INTEGER NOT NULL,
+            level_number INTEGER NOT NULL,
+            kp_id TEXT,
+            status TEXT DEFAULT 'locked',
+            completed_at DATETIME,
+            score INTEGER DEFAULT 0,
+            total_questions INTEGER DEFAULT 10,
+            stars INTEGER DEFAULT 0,
+            coins_reward INTEGER DEFAULT 0,
+            exp_reward INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(subject, grade, level_number)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_cl_status ON challenge_levels(subject, grade, status)")
+
+    # 题目缓存表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS challenge_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            level_id INTEGER NOT NULL,
+            question_bank_id INTEGER,
+            subject TEXT NOT NULL,
+            grade INTEGER NOT NULL,
+            question_text TEXT NOT NULL,
+            options TEXT NOT NULL,
+            correct_answer TEXT NOT NULL,
+            explanation TEXT,
+            question_order INTEGER,
+            is_ai_generated INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (level_id) REFERENCES challenge_levels(id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_cq_level ON challenge_questions(level_id)")
+
+    # 每日进度表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS challenge_daily_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject TEXT NOT NULL,
+            grade INTEGER NOT NULL,
+            challenge_date DATE NOT NULL,
+            level_id INTEGER NOT NULL,
+            completed INTEGER DEFAULT 0,
+            score INTEGER DEFAULT 0,
+            stars INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(subject, challenge_date)
+        )
+    """)
+
+    # 错题记录表
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS challenge_wrong_questions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question_id INTEGER NOT NULL,
+            kp_id TEXT,
+            subject TEXT NOT NULL,
+            grade INTEGER NOT NULL,
+            user_answer TEXT,
+            correct_answer TEXT,
+            wrong_count INTEGER DEFAULT 1,
+            last_wrong_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(question_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_cwq_subject ON challenge_wrong_questions(subject, grade)")
+
+    # 闯关成就
+    new_achievements = [
+        ('闯关新手', '完成第1关闯关', '🎯', 0),
+        ('闯关达人', '累计通关10关', '⚔️', 0),
+        ('闯关大师', '累计通关50关', '🏅', 0),
+        ('语文学霸', '语文累计通关20关', '📚', 0),
+        ('数学天才', '数学累计通关20关', '🔢', 0),
+        ('英语达人', '英语累计通关20关', '🔤', 0),
+        ('完美通关', '单关获得5星评价', '⭐', 0),
+    ]
+    for name, desc, icon, unlocked in new_achievements:
+        existing = cursor.execute("SELECT name FROM achievements WHERE name = ?", (name,)).fetchone()
+        if not existing:
+            cursor.execute("""
+                INSERT INTO achievements (name, description, icon, unlocked)
+                VALUES (?, ?, ?, ?)
+            """, (name, desc, icon, unlocked))
+
     # ===== 多宠物架构（v3.3）增量建表 + 物种目录 seed =====
     _init_multi_pet_schema(cursor)
 

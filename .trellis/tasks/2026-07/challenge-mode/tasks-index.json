@@ -1,0 +1,56 @@
+{
+  "project": "homework-pet",
+  "started": "2026-07-29",
+  "phase": "challenge-mode",
+  "name": "闯关模块（Challenge Mode）",
+  "status": "done",
+  "tasks": [
+    {
+      "name": "教材PDF→Markdown转换+知识图谱生成",
+      "status": "done",
+      "id": "CM-1"
+    },
+    {
+      "name": "基础题库预生成（LLM+教材）",
+      "status": "done",
+      "id": "CM-2"
+    },
+    {
+      "name": "数据库设计（4张新表）",
+      "status": "done",
+      "id": "CM-3"
+    },
+    {
+      "name": "后端API（6个端点）",
+      "status": "done",
+      "id": "CM-4"
+    },
+    {
+      "name": "AI出题Prompt+质量校验",
+      "status": "done",
+      "id": "CM-5"
+    },
+    {
+      "name": "前端闯关UI+答题交互",
+      "status": "done",
+      "id": "CM-6"
+    },
+    {
+      "name": "通关动画+奖励系统",
+      "status": "done",
+      "id": "CM-7"
+    },
+    {
+      "name": "错题收集+星级评价",
+      "status": "done",
+      "id": "CM-8"
+    },
+    {
+      "name": "集成测试+部署",
+      "status": "done",
+      "id": "CM-9"
+    }
+  ],
+  "deploy_target": "Railway",
+  "completed": "2026-07-30"
+}

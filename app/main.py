@@ -2932,6 +2932,662 @@ async def admin_db_export(pwd: str = ""):
     return FileResponse(db_path, filename="homework_pet_export.db", media_type="application/octet-stream")
 
 
+
+# ===== 闯关模块（Challenge Mode）API =====
+
+# 学科配置
+CHALLENGE_SUBJECTS = {
+    "chinese": {"name": "语文", "icon": "📚", "color": "#E17055"},
+    "math": {"name": "数学", "icon": "🔢", "color": "#FFD700"},
+    "english": {"name": "英语", "icon": "🔤", "color": "#0984E3"},
+}
+
+# AI 出题 System Prompt
+CHALLENGE_SYSTEM_PROMPT = """你是一名专业的小学教育命题专家。
+你的任务是根据中国小学课程标准，生成适合小学1-5年级学生的练习题。
+
+你必须：
+1. 严格控制知识范围，不超纲
+2. 控制题目难度，适合对应年级
+3. 使用儿童容易理解的语言
+4. 保证答案唯一正确
+5. 提供详细解析
+
+禁止：
+1. 如果无法确定答案，不要生成
+2. 不要编造教材内容
+3. 不要引用不存在的资料
+4. 不要生成多个正确答案
+5. 不要出现超纲知识"""
+
+
+def _get_challenge_grade(conn):
+    """从家长设置获取年级，默认1年级"""
+    row = conn.execute("SELECT value FROM parent_settings WHERE key = 'grade'").fetchone()
+    return int(row['value']) if row else 1
+
+
+def _check_daily_challenge(conn, subject, today):
+    """检查今天该学科是否已闯关"""
+    row = conn.execute(
+        "SELECT completed FROM challenge_daily_progress WHERE subject = ? AND challenge_date = ?",
+        (subject, today)
+    ).fetchone()
+    return row is not None and row['completed'] == 1
+
+
+def _get_or_create_level(conn, subject, grade):
+    """获取或创建当前关卡"""
+    # 查找该学科该年级最新未完成的关卡
+    level = conn.execute("""
+        SELECT * FROM challenge_levels
+        WHERE subject = ? AND grade = ? AND status != 'completed'
+        ORDER BY level_number ASC LIMIT 1
+    """, (subject, grade)).fetchone()
+    
+    if level:
+        return dict(level)
+    
+    # 计算下一个关卡号
+    max_row = conn.execute(
+        "SELECT MAX(level_number) as max_num FROM challenge_levels WHERE subject = ? AND grade = ?",
+        (subject, grade)
+    ).fetchone()
+    next_number = (max_row['max_num'] or 0) + 1
+    
+    # 获取下一个知识点
+    kp = conn.execute("""
+        SELECT * FROM knowledge_points
+        WHERE subject = ? AND grade = ?
+        ORDER BY sort_order ASC
+    """, (subject, grade)).fetchall()
+    
+    kp_id = None
+    if kp:
+        # 按关卡号循环使用知识点
+        kp_idx = (next_number - 1) % len(kp)
+        kp_id = kp[kp_idx]['id']
+    
+    # 创建新关卡
+    conn.execute("""
+        INSERT INTO challenge_levels (subject, grade, level_number, kp_id, status)
+        VALUES (?, ?, ?, ?, 'available')
+    """, (subject, grade, next_number, kp_id))
+    conn.commit()
+    
+    level = conn.execute("""
+        SELECT * FROM challenge_levels WHERE subject = ? AND grade = ? AND level_number = ?
+    """, (subject, grade, next_number)).fetchone()
+    return dict(level)
+
+
+def _generate_questions_for_level(conn, level, subject, grade):
+    """为关卡生成题目：50%基础题库 + 50%AI动态生成"""
+    # 检查是否已有缓存题目
+    cached = conn.execute(
+        "SELECT COUNT(*) as cnt FROM challenge_questions WHERE level_id = ?",
+        (level['id'],)
+    ).fetchone()
+    
+    if cached['cnt'] >= 10:
+        # 已有缓存，直接返回
+        questions = conn.execute("""
+            SELECT * FROM challenge_questions WHERE level_id = ? ORDER BY question_order
+        """, (level['id'],)).fetchall()
+        return [dict(q) for q in questions]
+    
+    questions = []
+    
+    # 50% 从基础题库随机抽取（5题）
+    kp_id = level.get('kp_id')
+    bank_questions = []
+    if kp_id:
+        bank_questions = conn.execute("""
+            SELECT * FROM question_bank
+            WHERE kp_id = ? OR (subject = ? AND grade = ?)
+            ORDER BY RANDOM() LIMIT 5
+        """, (kp_id, subject, grade)).fetchall()
+    
+    for q in bank_questions:
+        questions.append({
+            'question_text': q['question_text'],
+            'options': json.loads(q['options']),
+            'correct_answer': q['correct_answer'],
+            'explanation': q['explanation'] or '',
+            'question_bank_id': q['id'],
+            'is_ai_generated': 0,
+        })
+    
+    # 50% AI 动态生成（补齐到10题）
+    ai_count = 10 - len(questions)
+    if ai_count > 0:
+        ai_questions = _generate_ai_questions(conn, subject, grade, kp_id, ai_count)
+        questions.extend(ai_questions)
+    
+    # 存入缓存
+    for i, q in enumerate(questions):
+        conn.execute("""
+            INSERT INTO challenge_questions
+            (level_id, question_bank_id, subject, grade, question_text, options, correct_answer, explanation, question_order, is_ai_generated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            level['id'],
+            q.get('question_bank_id'),
+            subject,
+            grade,
+            q['question_text'],
+            json.dumps(q['options'], ensure_ascii=False),
+            q['correct_answer'],
+            q.get('explanation', ''),
+            i + 1,
+            q.get('is_ai_generated', 1),
+        ))
+    conn.commit()
+    
+    return questions
+
+
+def _generate_ai_questions(conn, subject, grade, kp_id, count):
+    """调用 Hermes AI 生成题目"""
+    # 获取教材参考内容
+    markdown_ref = ""
+    kp_name = ""
+    if kp_id:
+        kp = conn.execute("SELECT * FROM knowledge_points WHERE id = ?", (kp_id,)).fetchone()
+        if kp:
+            kp_name = kp['name']
+            # 尝试读取对应 Markdown 文件
+            md_paths = [
+                f"docs/教材/markdown/{subject}/人教版/{grade}年级.md",
+                f"docs/教材/markdown/{subject}/统编版/{grade}年级.md",
+                f"docs/教材/markdown/{subject}/{grade}年级.md",
+            ]
+            for md_path in md_paths:
+                if os.path.exists(md_path):
+                    with open(md_path, 'r', encoding='utf-8') as f:
+                        markdown_ref = f.read()[:3000]  # 取前3000字
+                    break
+    
+    subject_name = CHALLENGE_SUBJECTS.get(subject, {}).get('name', subject)
+    
+    user_prompt = f"""请根据以下教材内容生成{count}道小学{grade}年级{subject_name}选择题。
+
+【教材参考】
+{markdown_ref if markdown_ref else f'{grade}年级{subject_name}课程'}
+
+【知识点】{kp_name if kp_name else subject_name + '综合'}
+【难度分布】简单{int(count*0.5)}题 + 中等{int(count*0.3)}题 + 挑战{count - int(count*0.5) - int(count*0.3)}题
+【输出格式】严格输出JSON数组：
+[{{"question":"题目内容","options":["A.选项1","B.选项2","C.选项3","D.选项4"],"answer":"A","analysis":"详细解析","knowledge_point":"知识点名称"}}]"""
+
+    try:
+        import asyncio
+        loop = asyncio.new_event_loop()
+        msgs = [
+            {"role": "system", "content": CHALLENGE_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+        result = loop.run_until_complete(chat_proxy.call_hermes(msgs))
+        loop.close()
+        
+        # 解析 JSON
+        result = result.strip()
+        if result.startswith("```"):
+            result = result.split("```")[1]
+            if result.startswith("json"):
+                result = result[4:]
+        result = result.strip()
+        
+        ai_data = json.loads(result)
+        questions = []
+        for item in ai_data[:count]:
+            q_text = item.get('question', '')
+            options = item.get('options', [])
+            answer = item.get('answer', 'A')
+            analysis = item.get('analysis', item.get('explanation', ''))
+            
+            # 质量校验：格式检查
+            if not q_text or len(options) != 4:
+                continue
+            if answer not in ['A', 'B', 'C', 'D']:
+                continue
+            
+            # 数学答案验证
+            if subject == 'math':
+                if not _verify_math_answer(q_text, options, answer):
+                    continue
+            
+            questions.append({
+                'question_text': q_text,
+                'options': options,
+                'correct_answer': answer,
+                'explanation': analysis,
+                'question_bank_id': None,
+                'is_ai_generated': 1,
+            })
+        
+        return questions
+    except Exception as e:
+        logger.error(f"AI出题失败: {e}")
+        # 降级：返回预设题目
+        return _get_fallback_questions(subject, grade, count)
+
+
+def _verify_math_answer(question_text, options, answer):
+    """验证数学答案正确性"""
+    try:
+        # 提取简单算式验证
+        import re
+        # 尝试从选项中找到正确答案对应的数值
+        option_idx = ['A', 'B', 'C', 'D'].index(answer)
+        if option_idx < len(options):
+            answer_text = options[option_idx]
+            # 提取数字
+            nums = re.findall(r'-?\d+', answer_text)
+            if nums:
+                answer_num = int(nums[0])
+                # 从题目中提取算式
+                expr_match = re.search(r'(\d+)\s*([+\-*/×÷])\s*(\d+)', question_text)
+                if expr_match:
+                    a, op, b = int(expr_match.group(1)), expr_match.group(2), int(expr_match.group(3))
+                    if op == '+': correct = a + b
+                    elif op == '-': correct = a - b
+                    elif op in ('*', '×'): correct = a * b
+                    elif op in ('/', '÷') and b != 0: correct = a // b
+                    else: return True
+                    if answer_num != correct:
+                        logger.warning(f"数学答案验证失败: {question_text} AI答案={answer_num} 正确={correct}")
+                        return False
+    except Exception:
+        pass
+    return True
+
+
+def _get_fallback_questions(subject, grade, count):
+    """降级题库（AI失败时使用）"""
+    fallback = {
+        "math": [
+            {"question_text": "5 + 3 = ?", "options": ["A.6", "B.7", "C.8", "D.9"], "correct_answer": "C", "explanation": "5+3=8"},
+            {"question_text": "12 - 4 = ?", "options": ["A.6", "B.7", "C.8", "D.9"], "correct_answer": "C", "explanation": "12-4=8"},
+            {"question_text": "3 × 4 = ?", "options": ["A.10", "B.11", "C.12", "D.13"], "correct_answer": "C", "explanation": "3×4=12"},
+            {"question_text": "15 ÷ 3 = ?", "options": ["A.3", "B.4", "C.5", "D.6"], "correct_answer": "C", "explanation": "15÷3=5"},
+            {"question_text": "7 + 6 = ?", "options": ["A.12", "B.13", "C.14", "D.15"], "correct_answer": "B", "explanation": "7+6=13"},
+        ],
+        "chinese": [
+            {"question_text": "下列哪个字是正确的？", "options": ["A.辩子", "B.辫子", "C.辨子", "D.瓣子"], "correct_answer": "B", "explanation": "辫子是指头发编成的辫子"},
+            {"question_text": "'春'字共有几画？", "options": ["A.7画", "B.8画", "C.9画", "D.10画"], "correct_answer": "C", "explanation": "春字共9画"},
+            {"question_text": "下列哪个词语表示高兴？", "options": ["A.伤心", "B.快乐", "C.生气", "D.害怕"], "correct_answer": "B", "explanation": "快乐表示高兴的心情"},
+            {"question_text": "'床前明月光'的作者是？", "options": ["A.杜甫", "B.李白", "C.白居易", "D.王维"], "correct_answer": "B", "explanation": "这是李白的《静夜思》"},
+            {"question_text": "下列哪个是描写秋天的词语？", "options": ["A.春暖花开", "B.烈日炎炎", "C.秋高气爽", "D.冰天雪地"], "correct_answer": "C", "explanation": "秋高气爽形容秋天天气晴朗"},
+        ],
+        "english": [
+            {"question_text": "Apple 是什么意思？", "options": ["A.香蕉", "B.苹果", "C.橙子", "D.葡萄"], "correct_answer": "B", "explanation": "Apple 是苹果的意思"},
+            {"question_text": "How are you?", "options": ["A.I'm fine", "B.Thank you", "C.Goodbye", "D.Hello"], "correct_answer": "A", "explanation": "How are you? 回答 I'm fine"},
+            {"question_text": "Cat 是什么动物？", "options": ["A.狗", "B.鸟", "C.猫", "D.鱼"], "correct_answer": "C", "explanation": "Cat 是猫"},
+            {"question_text": "下列哪个是颜色单词？", "options": ["A.dog", "B.red", "C.book", "D.pen"], "correct_answer": "B", "explanation": "red 是颜色单词，表示红色"},
+            {"question_text": "Good morning 是什么意思？", "options": ["A.晚安", "B.早上好", "C.下午好", "D.你好"], "correct_answer": "B", "explanation": "Good morning 是早上好"},
+        ],
+    }
+    subject_fallback = fallback.get(subject, fallback["math"])
+    # 根据年级调整
+    result = []
+    for i in range(count):
+        result.append(subject_fallback[i % len(subject_fallback)])
+    return result
+
+
+def _calculate_stars(score, total):
+    """计算星级"""
+    if total == 0:
+        return 0
+    accuracy = score / total
+    if accuracy >= 0.9:
+        return 5
+    elif accuracy >= 0.8:
+        return 4
+    elif accuracy >= 0.7:
+        return 3
+    elif accuracy >= 0.6:
+        return 2
+    elif accuracy > 0:
+        return 1
+    return 0
+
+
+def _open_chest(stars):
+    """宝箱系统"""
+    rand = random.random()
+    if rand < 0.1:
+        # 传奇宝箱
+        rewards = [
+            {"type": "coins", "amount": 100, "name": "传奇宝箱", "icon": "💎"},
+            {"type": "item", "name": "彩虹翅膀", "icon": "🌈"},
+        ]
+    elif rand < 0.4:
+        # 黄金宝箱
+        rewards = [
+            {"type": "coins", "amount": 30 + stars * 5, "name": "黄金宝箱", "icon": "🥇"},
+            {"type": "item", "name": "小龙帽子", "icon": "🎩"},
+        ]
+    else:
+        # 普通宝箱
+        rewards = [
+            {"type": "coins", "amount": 10 + stars * 2, "name": "普通宝箱", "icon": "📦"},
+        ]
+    return rewards
+
+
+@app.get("/api/challenge/status")
+async def challenge_status():
+    """获取闯关状态"""
+    conn = get_db_connection()
+    grade = _get_challenge_grade(conn)
+    today = get_current_time().strftime('%Y-%m-%d')
+    
+    subjects_status = []
+    for subject, info in CHALLENGE_SUBJECTS.items():
+        # 当前关卡
+        level = conn.execute("""
+            SELECT MAX(level_number) as current FROM challenge_levels
+            WHERE subject = ? AND grade = ?
+        """, (subject, grade)).fetchone()
+        current_level = level['current'] or 0
+        
+        # 通关数
+        completed = conn.execute("""
+            SELECT COUNT(*) as cnt FROM challenge_levels
+            WHERE subject = ? AND grade = ? AND status = 'completed'
+        """, (subject, grade)).fetchone()['cnt']
+        
+        # 今日是否已闯关
+        daily = conn.execute("""
+            SELECT completed FROM challenge_daily_progress
+            WHERE subject = ? AND challenge_date = ?
+        """, (subject, today)).fetchone()
+        today_done = daily is not None
+        
+        # 总星数
+        stars = conn.execute("""
+            SELECT COALESCE(SUM(stars), 0) as total_stars FROM challenge_levels
+            WHERE subject = ? AND grade = ? AND status = 'completed'
+        """, (subject, grade)).fetchone()['total_stars']
+        
+        subjects_status.append({
+            "subject": subject,
+            "name": info["name"],
+            "icon": info["icon"],
+            "color": info["color"],
+            "grade": grade,
+            "current_level": current_level,
+            "completed": completed,
+            "today_done": today_done,
+            "total_stars": stars,
+        })
+    
+    # 今日总进度
+    today_count = conn.execute("""
+        SELECT COUNT(*) as cnt FROM challenge_daily_progress
+        WHERE challenge_date = ? AND completed = 1
+    """, (today,)).fetchone()['cnt']
+    
+    conn.close()
+    return {
+        "success": True,
+        "subjects": subjects_status,
+        "today_completed": today_count,
+        "today_max": 3,
+        "grade": grade,
+    }
+
+
+@app.get("/api/challenge/subjects")
+async def challenge_subjects():
+    """获取学科配置"""
+    return {"success": True, "subjects": CHALLENGE_SUBJECTS}
+
+
+@app.post("/api/challenge/start")
+async def challenge_start(subject: str = Form(...), grade: int = Form(None)):
+    """开始闯关"""
+    conn = get_db_connection()
+    today = get_current_time().strftime('%Y-%m-%d')
+    
+    # 验证学科
+    if subject not in CHALLENGE_SUBJECTS:
+        conn.close()
+        return JSONResponse({"success": False, "message": "学科不存在"}, status_code=400)
+    
+    # 获取年级
+    if grade is None:
+        grade = _get_challenge_grade(conn)
+    
+    # 检查每日限制
+    if _check_daily_challenge(conn, subject, today):
+        conn.close()
+        return JSONResponse({"success": False, "message": f"今天{CHALLENGE_SUBJECTS[subject]['name']}已经闯关过了"}, status_code=400)
+    
+    # 获取或创建关卡
+    level = _get_or_create_level(conn, subject, grade)
+    
+    # 生成题目
+    questions = _generate_questions_for_level(conn, level, subject, grade)
+    
+    # 记录每日进度
+    conn.execute("""
+        INSERT OR REPLACE INTO challenge_daily_progress (subject, grade, challenge_date, level_id, completed)
+        VALUES (?, ?, ?, ?, 0)
+    """, (subject, grade, today, level['id']))
+    conn.commit()
+    
+    # 返回题目（不含正确答案）
+    safe_questions = []
+    for i, q in enumerate(questions):
+        safe_questions.append({
+            "id": i + 1,
+            "question_text": q['question_text'],
+            "options": q['options'],
+            "is_ai_generated": q.get('is_ai_generated', 0),
+        })
+    
+    kp_name = ""
+    if level.get('kp_id'):
+        kp = conn.execute("SELECT name FROM knowledge_points WHERE id = ?", (level['kp_id'],)).fetchone()
+        if kp:
+            kp_name = kp['name']
+    
+    conn.close()
+    return {
+        "success": True,
+        "level": {
+            "id": level['id'],
+            "subject": subject,
+            "grade": grade,
+            "level_number": level['level_number'],
+            "kp_name": kp_name,
+        },
+        "questions": safe_questions,
+        "total": len(safe_questions),
+    }
+
+
+@app.post("/api/challenge/answer")
+async def challenge_answer(question_index: int = Form(...), answer: str = Form(...), level_id: int = Form(...)):
+    """提交单题答案"""
+    conn = get_db_connection()
+    
+    # 获取关卡题目
+    questions = conn.execute("""
+        SELECT * FROM challenge_questions WHERE level_id = ? ORDER BY question_order
+    """, (level_id,)).fetchall()
+    
+    if question_index < 0 or question_index >= len(questions):
+        conn.close()
+        return JSONResponse({"success": False, "message": "题目不存在"}, status_code=400)
+    
+    q = dict(questions[question_index])
+    correct = answer.upper() == q['correct_answer'].upper()
+    
+    # 答错记录到错题本
+    if not correct:
+        conn.execute("""
+            INSERT INTO challenge_wrong_questions (question_id, kp_id, subject, grade, user_answer, correct_answer, wrong_count)
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+            ON CONFLICT(question_id) DO UPDATE SET
+                wrong_count = wrong_count + 1,
+                user_answer = ?,
+                last_wrong_at = CURRENT_TIMESTAMP
+        """, (q['id'], q.get('kp_id'), q['subject'], q['grade'], answer, q['correct_answer'], answer))
+        conn.commit()
+    
+    conn.close()
+    return {
+        "success": True,
+        "correct": correct,
+        "user_answer": answer,
+        "correct_answer": q['correct_answer'],
+        "explanation": q['explanation'] or "",
+    }
+
+
+@app.post("/api/challenge/complete")
+async def challenge_complete(level_id: int = Form(...), score: int = Form(...), total: int = Form(...)):
+    """完成闯关"""
+    conn = get_db_connection()
+    current_time = get_current_time()
+    today = current_time.strftime('%Y-%m-%d')
+    
+    # 获取关卡信息
+    level = conn.execute("SELECT * FROM challenge_levels WHERE id = ?", (level_id,)).fetchone()
+    if not level:
+        conn.close()
+        return JSONResponse({"success": False, "message": "关卡不存在"}, status_code=404)
+    
+    level = dict(level)
+    subject = level['subject']
+    grade = level['grade']
+    
+    # 计算星级
+    stars = _calculate_stars(score, total)
+    passed = stars >= 2  # 60%以上算通关（2星）
+    
+    # 计算奖励
+    coins_reward = 0
+    exp_reward = 0
+    chest_rewards = []
+    
+    if passed:
+        coins_reward = 20 + score * 2  # 基础20 + 每题2
+        if score == total:  # 全对额外
+            coins_reward += 10
+        if stars == 5:  # 5星加成
+            coins_reward = int(coins_reward * 1.5)
+        exp_reward = 30
+        
+        # 宝箱
+        chest_rewards = _open_chest(stars)
+        for reward in chest_rewards:
+            if reward['type'] == 'coins':
+                coins_reward += reward['amount']
+        
+        # 更新关卡状态
+        conn.execute("""
+            UPDATE challenge_levels
+            SET status = 'completed', completed_at = ?, score = ?, stars = ?, coins_reward = ?, exp_reward = ?
+            WHERE id = ?
+        """, (current_time.isoformat(), score, stars, coins_reward, exp_reward, level_id))
+        
+        # 解锁下一关
+        conn.execute("""
+            INSERT OR IGNORE INTO challenge_levels (subject, grade, level_number, status)
+            VALUES (?, ?, ?, 'available')
+        """, (subject, grade, level['level_number'] + 1))
+        
+        # 更新每日进度
+        conn.execute("""
+            UPDATE challenge_daily_progress
+            SET completed = 1, score = ?, stars = ?
+            WHERE subject = ? AND challenge_date = ?
+        """, (score, stars, subject, today))
+        
+        # 发放龙币和经验
+        add_coins(conn, coins_reward, 'challenge', f'闯关通关·{CHALLENGE_SUBJECTS[subject]["name"]}第{level["level_number"]}关·{stars}星')
+        
+        # 增加经验
+        pet = conn.execute("SELECT exp FROM pet WHERE id = 1").fetchone()
+        if pet:
+            conn.execute("UPDATE pet SET exp = exp + ? WHERE id = 1", (exp_reward,))
+        
+        # 记录宝箱
+        for reward in chest_rewards:
+            if reward['type'] == 'item':
+                conn.execute("""
+                    INSERT INTO treasure_log (reward_type, reward_name, reward_icon)
+                    VALUES (?, ?, ?)
+                """, ('item', reward['name'], reward['icon']))
+        
+        # 检查成就
+        check_achievements(conn, 0, 0, 0, 0, 0, 0)
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "success": True,
+        "passed": passed,
+        "stars": stars,
+        "score": score,
+        "total": total,
+        "rewards": {
+            "coins": coins_reward,
+            "exp": exp_reward,
+            "chest": chest_rewards,
+        },
+    }
+
+
+@app.get("/api/challenge/history")
+async def challenge_history(limit: int = 10):
+    """闯关历史"""
+    conn = get_db_connection()
+    history = conn.execute("""
+        SELECT cl.*, cdp.challenge_date
+        FROM challenge_levels cl
+        LEFT JOIN challenge_daily_progress cdp ON cdp.level_id = cl.id
+        WHERE cl.status = 'completed'
+        ORDER BY cl.completed_at DESC
+        LIMIT ?
+    """, (limit,)).fetchall()
+    
+    # 错题统计
+    wrong_stats = conn.execute("""
+        SELECT subject, COUNT(*) as cnt FROM challenge_wrong_questions
+        GROUP BY subject ORDER BY cnt DESC
+    """).fetchall()
+    
+    conn.close()
+    return {
+        "success": True,
+        "history": [dict(h) for h in history],
+        "wrong_stats": [dict(w) for w in wrong_stats],
+    }
+
+
+@app.get("/api/challenge/wrong-questions")
+async def challenge_wrong_questions(subject: str = None, limit: int = 20):
+    """获取错题列表"""
+    conn = get_db_connection()
+    if subject:
+        wrongs = conn.execute("""
+            SELECT * FROM challenge_wrong_questions
+            WHERE subject = ? ORDER BY wrong_count DESC LIMIT ?
+        """, (subject, limit)).fetchall()
+    else:
+        wrongs = conn.execute("""
+            SELECT * FROM challenge_wrong_questions ORDER BY wrong_count DESC LIMIT ?
+        """, (limit,)).fetchall()
+    conn.close()
+    return {"success": True, "wrong_questions": [dict(w) for w in wrongs]}
+
 # ===== 启动 =====
 
 if __name__ == "__main__":

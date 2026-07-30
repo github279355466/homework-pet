@@ -41,3 +41,6 @@ Thumbs.db
 # Meoo
 .env
 dist/
+
+# Textbook PDFs (too large, 5.7GB) - only track markdown conversions
+docs/教材/**/*.pdf
