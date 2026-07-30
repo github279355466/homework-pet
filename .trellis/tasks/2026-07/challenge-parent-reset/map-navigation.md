@@ -1,6 +1,6 @@
 # 地图导航：家长模式闯关重置（challenge-parent-reset）
 
-> 生成日期：2026-07-30 ｜ 状态：in_progress ｜ commit：待补
+> 生成日期：2026-07-30 ｜ 状态：done ｜ commit：e95d2ba（已部署 Railway）
 
 ## 1. 项目地图（本次涉及）
 - 后端：`app/main.py`
@@ -23,8 +23,9 @@
 | QA 回归验证 | pending | 隔离测试库：完成→reset→completed 翻 0、历史/错题不变；div 平衡 |
 
 ## 3. 当前进度
-- 进度：0%（实现中）
-- 下一步：实现后端 + 前端 → 隔离库验证 → 提交 → 部署前与用户确认。
+- 进度：100%（实现 + 验证 + 部署完成）
+- 已部署：push main（`3f4cbe8..2d95abe`）触发 Railway 自动构建；生产探测 `POST /api/parent/reset-challenge`（错误密码）→ 200 `{"success":false,"message":"密码错误"}` 确认新端点已上线。
+- 数据安全已在隔离测试库端到端验证：重置仅翻转 `challenge_daily_progress.completed`，关卡/错题行数不变。
 
 ## 4. 硬性约束与教训
 - 重置**只动** `challenge_daily_progress.completed`，严禁 touching `challenge_levels` / `challenge_wrong_questions` / `challenge_questions`（需求 #3 数据安全红线）。
