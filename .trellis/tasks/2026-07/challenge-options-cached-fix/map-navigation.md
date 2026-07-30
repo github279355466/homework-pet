@@ -1,6 +1,6 @@
 # 地图导航：闯关选项空白回归（challenge-options-cached-fix）
 
-> 生成日期：2026-07-30 ｜ 状态：in_progress ｜ commit：待补
+> 生成日期：2026-07-30 ｜ 状态：done ｜ commit：7aa9b9c（待部署）
 
 ## 1. 项目地图（本次涉及）
 - 后端：`app/main.py`

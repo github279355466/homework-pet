@@ -5,6 +5,7 @@
   "last_updated": "2026-07-30",
   "status": "done",
   "current_branch": "main",
+  "_": "previous: in_progress",
   "production": {
     "platform": "Railway",
     "url": "https://homepet.up.railway.app/",
@@ -41,14 +42,25 @@
     "branch": "main",
     "started": "2026-07-30",
     "owner": "workbuddy",
-    "summary": "家长模式新增闯关重置：一键将今日已完成闯关恢复为可挑战，仅翻转 completed 标志不清除历史；含家长可见闯关记录视图",
-    "name": "家长模式闯关重置",
+    "summary": "闯关选项空白回归：缓存读路径未 JSON 解码 options 导致前端 .forEach 抛 TypeError。修复只动 _generate_questions_for_level 缓存分支，与 question_bank 分支对称",
+    "name": "闯关选项空白回归修复",
     "status": "done",
-    "id": "challenge-parent-reset",
+    "id": "challenge-options-cached-fix",
     "completed_at": "2026-07-30",
-    "commit_sha": "e95d2ba"
+    "commit_sha": "7aa9b9c"
   },
   "recent_completed": [
+    {
+      "id": "challenge-options-cached-fix",
+      "name": "闯关选项空白回归修复",
+      "status": "done",
+      "completed_at": "2026-07-30",
+      "owner": "workbuddy",
+      "commits": [
+        "7aa9b9c"
+      ],
+      "summary": "缓存读路径 _generate_questions_for_level 未 json.loads options，致前端 .forEach 抛 TypeError；修复只动读路径，与 question_bank 分支对称"
+    },
     {
       "id": "challenge-parent-reset",
       "name": "家长模式闯关重置",
