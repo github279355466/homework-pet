@@ -41,13 +41,23 @@
     "branch": "main",
     "started": "2026-07-29",
     "owner": "codex",
-    "summary": "闯关模块完成：教材PDF→Markdown(80文件/5.1MB)→知识图谱(3490点)→基础题库(6010题)→6个API端点→前端UI，端到端测试通过",
+    "summary": "闯关模块完成：教材PDF→Markdown(80文件/5.1MB)→知识图谱(3492点)→题库(3844题)→6API→前端UI，Phase1-3全部完成",
     "name": "闯关模块（Challenge Mode）",
     "status": "done",
     "id": "challenge-mode",
     "completed_at": "2026-07-30"
   },
   "recent_completed": [
+    {
+      "id": "challenge-mode",
+      "name": "闯关模块（Challenge Mode）",
+      "status": "done",
+      "completed_at": "2026-07-30",
+      "owner": "codex",
+      "commits": [
+        "f591648"
+      ]
+    },
     {
       "id": "chat-session-persistence",
       "name": "聊天会话历史修复",
