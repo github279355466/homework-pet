@@ -3304,7 +3304,7 @@ async def challenge_status():
             SELECT completed FROM challenge_daily_progress
             WHERE subject = ? AND challenge_date = ?
         """, (subject, today)).fetchone()
-        today_done = daily is not None
+        today_done = daily is not None and daily['completed'] == 1
         
         # 总星数
         stars = conn.execute("""

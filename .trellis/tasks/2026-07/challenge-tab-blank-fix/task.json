@@ -1,0 +1,19 @@
+{
+  "id": "1",
+  "phase": 0,
+  "title": "修复闯关标签页点击后空白",
+  "files": [
+    "app/templates/index.html"
+  ],
+  "depends_on": [],
+  "status": "done",
+  "assignee": "workbuddy",
+  "branch": "main",
+  "plan_ref": null,
+  "created_at": "2026-07-30",
+  "started_at": "2026-07-30",
+  "completed_at": "2026-07-30",
+  "commit_sha": "3f4cbe83389be59d646983f7898165c89a3e73ca",
+  "verification_output": "QA 三项回归验证 PASS：(1) html.parser 确认 pane-challenge 与 pane-chat 现为兄弟节点（同属 main-card），整体 div 开闭平衡(380/380)；(2) 本地 uvicorn 起服务 GET / ->200 且含 id=\"pane-challenge\"，GET /api/challenge/status -> {\"success\":true,\"subjects\":[chinese,math,english]}；(3) 生产探测 https://homepet.up.railway.app/ ->200 含 pane-challenge，接口 success:true。",
+  "notes": "根因：pane-challenge 被错误嵌套进 pane-chat 内部，父级 display:none 导致闯关内容（及 #challengeModal/#challengeResultModal 答题弹窗）不可见。修复：在 chat-panel 闭合后补 </div> 关闭 pane-chat，并删除文件后部多余 </div> 保持 div 平衡。仅改 HTML 结构，未动 JS/CSS/后端。推送 main 触发 Railway 自动部署。"
+}

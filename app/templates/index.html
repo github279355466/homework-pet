@@ -4520,6 +4520,7 @@ async function completeChallenge() {
 function closeChallengeModal() {
   document.getElementById('challengeModal').classList.remove('show');
   challengeState.active = false;
+  loadChallengeStatus();
 }
 
 function closeResultModal() {

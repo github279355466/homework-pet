@@ -39,15 +39,27 @@
   },
   "current_task": {
     "branch": "main",
-    "started": "2026-07-29",
-    "owner": "codex",
-    "summary": "闯关模块完成：题库4,614题（语文1,148+数学2,598+英语868），3学科×6年级全覆盖",
-    "name": "闯关模块（Challenge Mode）",
+    "started": "2026-07-30",
+    "owner": "workbuddy",
+    "summary": "修复闯关标签页点击后空白：pane-challenge 被错误嵌套进 pane-chat 导致内容不可见，已修复并部署",
+    "name": "修复闯关标签页空白",
     "status": "done",
-    "id": "challenge-mode",
-    "completed_at": "2026-07-30"
+    "id": "challenge-tab-blank-fix",
+    "completed_at": "2026-07-30",
+    "commit_sha": "3f4cbe83389be59d646983f7898165c89a3e73ca"
   },
   "recent_completed": [
+    {
+      "id": "challenge-tab-blank-fix",
+      "name": "修复闯关标签页空白",
+      "status": "done",
+      "completed_at": "2026-07-30",
+      "owner": "workbuddy",
+      "commits": [
+        "3f4cbe8"
+      ],
+      "summary": "pane-challenge 被错误嵌套进 pane-chat 导致闯关标签空白，修复 HTML 结构并部署生产"
+    },
     {
       "id": "challenge-mode",
       "name": "闯关模块（Challenge Mode）",
